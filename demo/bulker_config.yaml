@@ -1,0 +1,8 @@
+bulker:
+  volumes: ['/ext', '/tmp', '$HOME', '/project']
+  envvars: ['GENOMES', 'DISPLAY', 'TEXINPUTS']
+  default_crate_folder: ${HOME}/bulker_crates
+  crates:
+    base: ${HOME}/bulker_crates/base
+    peppro: /home/nsheff/bulker_crates/peppro
+    demo: /home/nsheff/bulker_crates/demo

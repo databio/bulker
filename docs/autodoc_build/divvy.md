@@ -1,0 +1,234 @@
+<script>
+document.addEventListener('DOMContentLoaded', (event) => {
+  document.querySelectorAll('h3 code').forEach((block) => {
+    hljs.highlightBlock(block);
+  });
+});
+</script>
+
+<style>
+h3 .content { 
+    padding-left: 22px;
+    text-indent: -15px;
+ }
+h3 .hljs .content {
+    padding-left: 20px;
+    margin-left: 0px;
+    text-indent: -15px;
+    martin-bottom: 0px;
+}
+h4 .content, table .content, p .content, li .content { margin-left: 30px; }
+h4 .content { 
+    font-style: italic;
+    font-size: 1em;
+    margin-bottom: 0px;
+}
+
+</style>
+
+
+# Package `divvy` Documentation
+
+## <a name="ComputingConfiguration"></a> Class `ComputingConfiguration`
+Represents computing configuration objects.
+
+The ComputingConfiguration class provides a computing configuration object
+that is an *in memory* representation of a `divvy` computing configuration
+file. This object has various functions to allow a user to activate, modify,
+and retrieve computing configuration files, and use these values to populate
+job submission script templates.
+
+#### Parameters:
+
+- `entries` (`str | Iterable[(str, object)] | Mapping[str, object]`):  configCollection of key-value pairs.
+- `filepath` (`str`):  YAML file specifying computing package data. (the`DIVCFG` file)
+- `config_file` (`str`):  YAML file specifying computing package data.[DEPRECATED: renamed to filepath to sync with yacman]
+- `no_env_error` (`type`):  type of exception to raise if divvysettings can't be established, optional; if null (the default), a warning message will be logged, and no exception will be raised.
+- `no_compute_exception` (`type`):  type of exception to raise if computesettings can't be established, optional; if null (the default), a warning message will be logged, and no exception will be raised.
+
+
+```python
+def activate_package(self, package_name)
+```
+
+Activates a compute package.
+
+This copies the computing attributes from the configuration file into
+the `compute` attribute, where the class stores current compute
+settings.
+#### Parameters:
+
+- `package_name` (`str`):  name for non-resource compute bundle,the name of a subsection in an environment configuration file
+
+
+#### Returns:
+
+- `bool`:  success flag for attempt to establish compute settings
+
+
+
+
+```python
+def clean_start(self, package_name)
+```
+
+Clear current active settings and then activate the given package.
+#### Parameters:
+
+- `package_name` (`str`):  name of the resource package to activate
+
+
+#### Returns:
+
+- `bool`:  success flag
+
+
+
+
+```python
+def compute_env_var(self)
+```
+
+Environment variable through which to access compute settings.
+#### Returns:
+
+- `list[str]`:  names of candidate environment variables, for whichvalue may be path to compute settings file; first found is used.
+
+
+
+
+```python
+def default_config_file(self)
+```
+
+Path to default compute environment settings file.
+#### Returns:
+
+- `str`:  Path to default compute settings file
+
+
+
+
+```python
+def get_active_package(self)
+```
+
+Returns settings for the currently active compute package
+#### Returns:
+
+- `yacman.YacAttMap`:  data defining the active compute package
+
+
+
+
+```python
+def list_compute_packages(self)
+```
+
+Returns a list of available compute packages.
+#### Returns:
+
+- `set[str]`:  names of available compute packages
+
+
+
+
+```python
+def reset_active_settings(self)
+```
+
+Clear out current compute settings.
+#### Returns:
+
+- `bool`:  success flag
+
+
+
+
+```python
+def template(self)
+```
+
+Get the currently active submission template.
+#### Returns:
+
+- `str`:  submission script content template for current state
+
+
+
+
+```python
+def templates_folder(self)
+```
+
+Path to folder with default submission templates.
+#### Returns:
+
+- `str`:  path to folder with default submission templates
+
+
+
+
+```python
+def update_packages(self, config_file)
+```
+
+Parse data from divvy configuration file.
+
+Given a divvy configuration file, this function will update (not
+overwrite) existing compute packages with existing values. It does not
+affect any currently active settings.
+#### Parameters:
+
+- `config_file` (`str`):  path to file with new divvy configuration data
+
+
+
+
+```python
+def write(self, filename=None)
+```
+
+
+
+```python
+def write_script(self, output_path, extra_vars=None)
+```
+
+Given currently active settings, populate the active template to write a submission script.
+#### Parameters:
+
+- `output_path` (`str`):  Path to file to write as submission script
+- `extra_vars` (`Iterable[Mapping]`):  A list of Dict objects with key-value pairswith which to populate template fields. These will override any values in the currently active compute package.
+
+
+#### Returns:
+
+- `str`:  Path to the submission script file
+
+
+
+
+```python
+def write_submit_script(fp, content, data)
+```
+
+Write a submission script by populating a template with data.
+#### Parameters:
+
+- `fp` (`str`):  Path to the file to which to create/write submissions script.
+- `content` (`str`):  Template for submission script, defining keys thatwill be filled by given data
+- `data` (`Mapping`):  a "pool" from which values are available to replacekeys in the template
+
+
+#### Returns:
+
+- `str`:  Path to the submission script
+
+
+
+
+
+
+
+*Version Information: `divvy` v0.4.0, generated by `lucidoc` v0.4.0*

@@ -1,0 +1,15 @@
+#!/bin/sh
+
+docker run --rm \{% if pkg.dockerargs %}
+  {{ pkg.dockerargs }} \{% endif %}
+  --user=$(id -u):$(id -g) \
+  --network="host" \{% for envvar in pkg.envvars %}
+  --env "{{envvar}}" \{% endfor %}{% for volume in pkg.volumes %}
+  --volume "{{volume}}:{{volume}}" \{% endfor %}
+  --volume="/etc/group:/etc/group:ro" \
+  --volume="/etc/passwd:/etc/passwd:ro" \
+  --volume="/etc/shadow:/etc/shadow:ro"  \
+  --volume="/etc/sudoers.d:/etc/sudoers.d:ro" \
+  --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+  --workdir="`pwd`" \
+  {{ pkg.docker_image }}{% if pkg.docker_command %} {{ pkg.docker_command }}{% elif pkg.command %} {{ pkg.command }}{% endif %} "$@"

@@ -1,0 +1,14 @@
+bulker:
+  volumes:
+    - /ext
+    - /tmp
+    - $HOME
+    - /usr
+  envvars:
+    - GENOMES
+    - DISPLAY
+    - TEXINPUTS
+  default_crate_folder: ${HOME}/bulker_crates
+  crates:
+    base: ${HOME}/bulker_crates/base
+    peppro: ${HOME}/bulker_crates/peppro

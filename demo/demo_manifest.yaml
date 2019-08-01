@@ -1,0 +1,16 @@
+manifest:
+  name: demo
+  commands:
+  - command: samtools
+    dockerargs: "-i"
+    docker_image: quay.io/biocontainers/samtools:1.9--h91753b0_8
+  - command: python3
+    dockerargs: "-it"
+    docker_image: nsheff/python3
+    docker_command: python3
+  - command: pandoc
+    docker_image: nsheff/pandoc
+    dockerargs: "-i"
+  - command: cowsay
+    docker_image: docker/whalesay
+    docker_command: cowsay

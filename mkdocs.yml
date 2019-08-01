@@ -1,0 +1,31 @@
+site_name: Bulker
+site_logo: img/bulker_logo_gray.svg
+site_url: http://bulker.databio.org/
+repo_url: http://github.com/databio/bulker
+pypi_name: bulker
+
+nav:
+  - Getting Started: 
+    - Introduction: README.md
+    - Install and configure: install.md
+  - How-to Guides:
+    - "Tutorial: divvy in python": tutorial.md
+    - "Tutorial: divvy on the command line": cli.md
+    - Configuring divvy: configuration.md
+    - Configuring containers: containers.md
+  - Reference:
+    - Default packages: default_packages.md
+    - API: autodoc_build/divvy.md
+    - Support: https://github.com/pepkit/divvy/issues
+    - Contributing: contributing.md
+    - Changelog: changelog.md
+    - DIVCFG examples: http://github.com/pepkit/divcfg
+
+theme: databio
+
+plugins:
+  - databio:
+      autodoc_build: "docs/autodoc_build"
+      autodoc_package: "divvy"
+      no_top_level: true
+  - search

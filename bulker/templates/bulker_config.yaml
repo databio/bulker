@@ -1,0 +1,10 @@
+bulker:
+  volumes:
+    - /tmp
+    - $HOME
+  envvars:
+    - DISPLAY
+    - TEXINPUTS
+  default_crate_folder: ${HOME}/bulker_crates
+  crates:
+    base: ${HOME}/bulker_crates/base
