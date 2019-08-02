@@ -1,6 +1,6 @@
 # <img src="img/bulker_logo.svg" class="img-header"> distributes containers simply
 
-[![PEP compatible](http://pepkit.github.io/img/PEP-compatible-green.svg)](http://pepkit.github.io)
+[![PEP compatible](https://pepkit.github.io/img/PEP-compatible-green.svg)](http://pepkit.github.io)
 
 ## What is `bulker`?
 
