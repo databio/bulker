@@ -7,25 +7,19 @@ pypi_name: bulker
 nav:
   - Getting Started: 
     - Introduction: README.md
+    - Motivation: motivation.md
     - Install and configure: install.md
+
   - How-to Guides:
-    - "Tutorial: divvy in python": tutorial.md
-    - "Tutorial: divvy on the command line": cli.md
-    - Configuring divvy: configuration.md
-    - Configuring containers: containers.md
+    - "Tutorial": tutorial.md
   - Reference:
-    - Default packages: default_packages.md
-    - API: autodoc_build/divvy.md
-    - Support: https://github.com/pepkit/divvy/issues
-    - Contributing: contributing.md
+    - Support: https://github.com/databio/bulker/issues
     - Changelog: changelog.md
-    - DIVCFG examples: http://github.com/pepkit/divcfg
 
 theme: databio
 
 plugins:
   - databio:
       autodoc_build: "docs/autodoc_build"
-      autodoc_package: "divvy"
       no_top_level: true
   - search

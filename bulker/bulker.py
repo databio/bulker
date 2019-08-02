@@ -194,7 +194,6 @@ def activate(bulker_config, crate):
     # activating is as simple as adding a crate folder to the PATH env var.
     newpath = bulker_config.bulker.crates[crate] + os.pathsep + os.environ["PATH"]
     os.environ["PATH"] = newpath
-    print("export PATH={}".format(newpath))
     os.system("bash")
 
 def main():
@@ -220,22 +219,24 @@ def main():
         sys.exit(0)      
 
     bulkercfg = select_bulker_config(args.config)
-    _LOGGER.info("Using bulker config: {}".format(bulkercfg))
+    _LOGGER.info("Bulker config: {}".format(bulkercfg))
     bulker_config = yacman.YacAttMap(filepath=bulkercfg)
 
     if args.command == "list":
         # Output header via logger and content via print so the user can
         # redirect the list from stdout if desired without the header as clutter
         _LOGGER.info("Available crates:")
-        print("{}".format(", ".join(bulker_config.bulker.crates.keys())))
+        for crate, path in bulker_config.bulker.crates.items():
+            print("{}: {}".format(crate, path))
         sys.exit(1)
 
     if args.command == "activate":
         try:
             _LOGGER.info("Activating crate: {}\n".format(args.crate))
             activate(bulker_config, args.crate)
-        except AttributeError:
+        except KeyError:
             parser.print_help(sys.stderr)
+            _LOGGER.error("{} is not an available crate".format(args.crate))
             sys.exit(1)
 
     if args.command == "load":
@@ -262,21 +263,3 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         _LOGGER.error("Program canceled by user!")
         sys.exit(1)
-
-
-# bcfg_filepath = "bulker_config.yaml"
-# bulker_config = yacman.YacAttMap(filepath=bcfg_filepath)
-
-# manifest_filepath="default_manifest.yaml"
-# manifest = yacman.YacAttMap(filepath=manifest_filepath)
-
-    
-# os.mkdir(crate_path)
-# load(manifest=manifest,
-#     crate_path="mycrate",
-#     bulker_config=bulker_config,
-#     jinja2_template=j2t)
-
-# activate(bulker_config, "peppro")
-
-# os.environ["PATH"]
