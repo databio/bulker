@@ -1,18 +1,14 @@
-# <img src="img/bulker_logo.svg" class="img-header"> distributes containers simply
+# <img src="img/bulker_logo.svg" class="img-header"> container executable manager
 
 [![PEP compatible](https://pepkit.github.io/img/PEP-compatible-green.svg)](http://pepkit.github.io)
 
 ## What is `bulker`?
 
-`Bulker` is a command-line manager of containerized executables. It produces drop-in replacements to command line tools so that they can be run in a container without any additional user effort. It also will manage collections of tools that can be activated or deactivated.
-
+`Bulker` is a command-line manager of containerized executables. It produces drop-in replacements to command line tools so that they can be run in a container without any additional user effort. Together with a repository of images, this makes it simple to distribute and use modular containers.
 
 ## What makes `bulker` useful?
 
-Instead of typing `docker run ... blah blah blah` and making all your user settings and volumes and environment varibles match, bulker does it for you.
-
-It also makes it easy to distribute, because those things are not universal.
-
+Instead of typing `docker run ... blah blah blah` and having to type user settings and volumes and environment variables and so on, bulker does it for you. You just keep this in a central configuration file (the `bulker_config.yaml`), which is unique for each computing environment. Then, you produce collections of containers, which we call `crates` (really just a list of containers). Bulker automatically builds executable scripts so that you can run these tools on the command line like drop-in replacements for any command-line tool -- except now, they're running in a container and you didn't have to install them. Because the environment-specific settings are decoupled from the container manifest, the manifest is portable, making it dead easy to distribute modular, containerized software. For more, read [my motivation](motivation.md).
 
 ## Quick start
 
@@ -24,11 +20,10 @@ pip install --user bulker
 
 ### 2 Load a crate
 
-A bulker crate is a collection of executables that run inside containers. To load a bulker crate, you need a manifest, which lists the commands and images included in this crate. Use `demo_manifest.txt` for example:
+A bulker crate is a collection of executables that run inside containers. To load a bulker crate, you need a manifest, which lists the commands and images included in this crate. Use [demo_manifest.txt](https://raw.githubusercontent.com/databio/bulker/master/demo/demo_manifest.yaml) for example:
 
 ```console
-cd bulker
-bulker load -m demo/demo_manifest.yaml
+bulker load -m https://raw.githubusercontent.com/databio/bulker/master/demo/demo_manifest.yaml
 ```
 
 Loading this crate will give you drop-in replacement command-line executables for any commands in the manifest.
@@ -62,31 +57,4 @@ cowsay Hello world!
 
 ```
 
-```
-
-<img src="img/divvy-merge.svg" style="float:right; padding-left: 25px; padding-right: 5px">
-
-Divvy will take variables from a file or the command line, merge these with environment settings to create a specific job script. Write a submission script from the command line:
-
-```{console}
-divvy write --package slurm \
-	--settings myjob.yaml \
-	--sample sample1 \
-	--outfile submit_script.txt
-```
-
-### Python interface
-
-You can also use `divvy` via python interface, or you can use it to make your own python tools divvy-compatible:
-
-```{python}
-import divvy
-dcc = divvy.ComputingConfiguration()
-dcc.activate_package("slurm")
-
-# write out a submission script
-dcc.write_script("test_script.sub", 
-	{"code": "bowtie2 input.bam output.bam"})
-```
-
-For more details, check out the [tutorial](tutorial).
+For more details, check out the [tutorial](tutorial.md).

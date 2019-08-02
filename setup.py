@@ -15,22 +15,8 @@ with open("requirements/requirements-all.txt", "r") as reqs_file:
     for line in reqs_file:
         if not line.strip():
             continue
-        #DEPENDENCIES.append(line.split("=")[0].rstrip("<>"))
         DEPENDENCIES.append(line)
 
-# numexpr for pandas
-try:
-    import numexpr
-except ImportError:
-    # No numexpr is OK for pandas.
-    pass
-else:
-    # pandas 0.20.2 needs updated numexpr; the claim is 2.4.6, but that failed.
-    DEPENDENCIES.append("numexpr>=2.6.2")
-
-# 2to3
-if sys.version_info >= (3, ):
-    extra["use_2to3"] = True
 extra["install_requires"] = DEPENDENCIES
 
 with open("{}/_version.py".format(PACKAGE), 'r') as versionfile:
@@ -58,8 +44,8 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Topic :: System :: Distributed Computing"
     ],
-    keywords="project, metadata, bioinformatics, sequencing, ngs, workflow",
-    url="https://github.com/pepkit/{}/".format(PACKAGE),
+    keywords="docker, containers, reproducibility, bioinformatics, workflow",
+    url="https://bulker.databio.org",
     author=u"Nathan Sheffield",
     author_email=u"nathan@code.databio.org", 
     license="BSD2",

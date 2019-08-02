@@ -10,7 +10,10 @@ import sys
 import shutil
 import yaml
 from yaml import SafeLoader
-from distutils.dir_util import copy_tree
+# from distutils.dir_util import copy_tree
+from shutil import copyfile
+
+from ubiquerg import is_url
 
 import yacman
 from collections import OrderedDict
@@ -66,15 +69,16 @@ def bulker_init(config_path, template_config_path):
         # dcc.write(config_path)
         # Init should *also* write the templates.
         dest_folder = os.path.dirname(config_path)
-        copy_tree(os.path.dirname(template_config_path), dest_folder)
+        # copy_tree(os.path.dirname(template_config_path), dest_folder)
         new_template = os.path.join(os.path.dirname(config_path), os.path.basename(template_config_path))
+        copyfile(template_config_path, new_template)
         os.rename(new_template, config_path)
-        _LOGGER.info("Wrote new divvy configuration file: {}".format(config_path))
+        _LOGGER.info("Wrote new configuration file: {}".format(config_path))
     else:
         _LOGGER.warning("Can't initialize, file exists: {} ".format(config_path))
 
 
-def _is_writeable(folder, check_exist=False, create=False):
+def _is_writable(folder, check_exist=False, create=False):
     """
     Make sure a folder is writable.
 
@@ -98,7 +102,7 @@ def _is_writeable(folder, check_exist=False, create=False):
         _LOGGER.debug("Folder not found: {}".format(folder))
         # The folder didn't exist. Recurse up the folder hierarchy to make sure
         # all paths are writable
-        return _is_writeable(os.path.dirname(folder), strict_exists)
+        return _is_writable(os.path.dirname(folder), strict_exists)
 
 
 def build_argparser():
@@ -190,7 +194,6 @@ def activate(bulker_config, crate):
     # activating is as simple as adding a crate folder to the PATH env var.
     newpath = bulker_config.bulker.crates[crate] + os.pathsep + os.environ["PATH"]
     os.environ["PATH"] = newpath
-    # print("export PATH={}".format(newpath))
     os.system("bash")
 
 def main():
@@ -212,26 +215,28 @@ def main():
         bulkercfg = args.config
         _LOGGER.debug("Initializing divvy configuration")
         _is_writable(os.path.dirname(bulkercfg), check_exist=False)
-        divvy_init(bulkercfg, DEFAULT_CONFIG_FILEPATH)
+        bulker_init(bulkercfg, DEFAULT_CONFIG_FILEPATH)
         sys.exit(0)      
 
     bulkercfg = select_bulker_config(args.config)
-    _LOGGER.info("Using bulker config: {}".format(bulkercfg))
+    _LOGGER.info("Bulker config: {}".format(bulkercfg))
     bulker_config = yacman.YacAttMap(filepath=bulkercfg)
 
     if args.command == "list":
         # Output header via logger and content via print so the user can
         # redirect the list from stdout if desired without the header as clutter
         _LOGGER.info("Available crates:")
-        print("{}".format(", ".join(bulker_config.bulker.crates.keys())))
+        for crate, path in bulker_config.bulker.crates.items():
+            print("{}: {}".format(crate, path))
         sys.exit(1)
 
     if args.command == "activate":
         try:
             _LOGGER.info("Activating crate: {}\n".format(args.crate))
             activate(bulker_config, args.crate)
-        except AttributeError:
+        except KeyError:
             parser.print_help(sys.stderr)
+            _LOGGER.error("{} is not an available crate".format(args.crate))
             sys.exit(1)
 
     if args.command == "load":
@@ -239,7 +244,16 @@ def main():
         with open(DOCKER_TEMPLATE, 'r') as f:
             contents = f.read()
             j2t = jinja2.Template(contents)
-        manifest = yacman.YacAttMap(filepath=args.manifest)
+
+        if is_url(args.manifest):
+            _LOGGER.info("Got URL.")
+            import urllib.request
+            response = urllib.request.urlopen(args.manifest)
+            data = response.read()      # a `bytes` object
+            text = data.decode('utf-8')
+            manifest = yacman.YacAttMap(yamldata=text)
+        else:
+            manifest = yacman.YacAttMap(filepath=args.manifest)
         load(manifest, bulker_config, j2t, args.path)
 
 
@@ -249,21 +263,3 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         _LOGGER.error("Program canceled by user!")
         sys.exit(1)
-
-
-# bcfg_filepath = "bulker_config.yaml"
-# bulker_config = yacman.YacAttMap(filepath=bcfg_filepath)
-
-# manifest_filepath="default_manifest.yaml"
-# manifest = yacman.YacAttMap(filepath=manifest_filepath)
-
-    
-# os.mkdir(crate_path)
-# load(manifest=manifest,
-#     crate_path="mycrate",
-#     bulker_config=bulker_config,
-#     jinja2_template=j2t)
-
-# activate(bulker_config, "peppro")
-
-# os.environ["PATH"]
