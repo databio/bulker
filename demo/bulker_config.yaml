@@ -2,6 +2,8 @@ bulker:
   volumes: ['/tmp', '$HOME']
   envvars: ['DISPLAY']
   default_crate_folder: ${HOME}/bulker_crates
+  container_engine: docker
+  executable_template: null
+  build_template: null  
   crates:
     base: ${HOME}/bulker_crates/base
-

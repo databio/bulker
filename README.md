@@ -12,13 +12,9 @@ pip install --user bulker
 
 ### 2 Load a crate
 
-A bulker crate is a collection of executables that run inside containers. To load a bulker crate, you need a manifest, which lists the commands and images included in this crate. Use `demo_manifest.txt` for example:
-
 ```
-bulker load -m https://raw.githubusercontent.com/databio/bulker/master/demo/demo_manifest.yaml
+bulker load https://raw.githubusercontent.com/databio/bulker/master/demo/demo_manifest.yaml
 ```
-
-Loading this crate will give you drop-in replacement command-line executables for any commands in the manifest.
 
 ### 3 Activate your new crate:
 
@@ -48,3 +44,5 @@ cowsay Hello World!
           \____\______/   
 
 ```
+
+For details, see the [bulker documentation](https://bulker.databio.org).

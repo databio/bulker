@@ -1,9 +1,9 @@
 bulker:
-  volumes:
-    - /tmp
-    - $HOME
-  envvars:
-    - DISPLAY
+  volumes: ['/tmp']
+  envvars: ['DISPLAY']
   default_crate_folder: ${HOME}/bulker_crates
-  crates:
-    base: ${HOME}/bulker_crates/base
+  singularity_image_folder: ${HOME}/simages
+  container_engine: docker
+  executable_template: null
+  build_template: null
+  crates: null

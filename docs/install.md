@@ -21,7 +21,7 @@ On a fresh install, `bulker` comes comes with a locally installed config file, w
 export BULKERCFG="bulker_config.yaml"
 bulker init -c $BULKERCFG
 ```
-This `init` command will create a default config file. 
+This `init` command will create a default config file. Use `bulker init -e singularity` to initialize with singularity instead of docker. 
 
 The `bulker activate`, `load`, and `list` commands require knowing where this genome config file is. You can pass it on the command line all the time (using the -c parameter), but this gets old. An alternative is to set up the $BULKERCFG environment variable. bulker will automatically use the config file in this environmental variable if it exists. Add this line to your `.bashrc` or `.profile` if you want it to persist for future command-line sessions. You can always specify -c if you want to override the value in the $BULKERCFG variable on an ad-hoc basis:
 
@@ -39,14 +39,15 @@ $> cat $BULKERCFG
 Returns:
 ```yaml
 bulker:
-  volumes:
-    - /tmp
-    - $HOME
-  envvars:
-    - DISPLAY
+  volumes: ['/tmp', '$HOME']
+  envvars: ['DISPLAY']
   default_crate_folder: ${HOME}/bulker_crates
+  container_engine: docker
+  executable_template: null
+  build_template: null  
   crates:
     base: ${HOME}/bulker_crates/base
+
 ```
 
 Here, you can add any file systems under `volumes` that you need mounted on your containers. You should add any environment variables that your containers may need under `envvars`. The `default_crate_folder` will determine where the crates (folders with executables) are saved. The `crates` section is maintained by `bulker` -- it will add a new entry into this section whenever you run `bulker load`, and this is what it reads when you request `bulker list` or `bulker activate`.

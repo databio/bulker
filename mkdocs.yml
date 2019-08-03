@@ -9,9 +9,9 @@ nav:
     - Introduction: README.md
     - Motivation: motivation.md
     - Install and configure: install.md
-
   - How-to Guides:
     - "Tutorial": tutorial.md
+    - Write a manifest: manifest.md
   - Reference:
     - Support: https://github.com/databio/bulker/issues
     - Changelog: changelog.md
