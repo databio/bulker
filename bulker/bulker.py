@@ -28,8 +28,10 @@ TEMPLATE_FOLDER = os.path.join(
         os.path.dirname(__file__),
         "templates")
 
-DOCKER_TEMPLATE = os.path.join(TEMPLATE_FOLDER, "docker_executable.jinja2")
-SINGULARITY_TEMPLATE =  os.path.join(TEMPLATE_FOLDER, "singularity_executable.jinja2")
+DOCKER_EXE_TEMPLATE = os.path.join(TEMPLATE_FOLDER, "docker_executable.jinja2")
+DOCKER_BUILD_TEMPLATE = os.path.join(TEMPLATE_FOLDER, "docker_build.jinja2")
+SINGULARITY_EXE_TEMPLATE =  os.path.join(TEMPLATE_FOLDER, "singularity_executable.jinja2")
+SINGULARITY_BUILD_TEMPLATE =  os.path.join(TEMPLATE_FOLDER, "singularity_build.jinja2")
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -80,7 +82,7 @@ def build_argparser():
             help="Divvy configuration file.")
 
     sps["load"].add_argument(
-            "-m", "--manifest", required=True,
+            "manifest", "-m", required=True,
             help="YAML file with executables to populate a crate.")    
 
     sps["load"].add_argument(
@@ -88,8 +90,9 @@ def build_argparser():
             help="Path to crate you will build.")
 
     sps["load"].add_argument(
-            "-b", "--build", type=str, default=None,
-            help="Build it now?")    
+            "-b", "--build", action='store_true', default=False,
+            help="Build/pull the actual containers, in addition to the"
+            "executables. Default: False")    
 
     sps["activate"].add_argument(
             "crate",
@@ -201,6 +204,8 @@ def bulker_load(manifest, bulker_config, jinja2_template, crate_path=None, build
 
 
     # Update the config file
+    if not bulker_config.bulker.crates:
+        bulker_config.bulker.crates = {}
     bulker_config.bulker.crates[manifest_name] = crate_path
     bulker_config.write()
 
@@ -236,13 +241,22 @@ def main():
     bulkercfg = select_bulker_config(args.config)
     _LOGGER.info("Bulker config: {}".format(bulkercfg))
     bulker_config = yacman.YacAttMap(filepath=bulkercfg)
+    if bulker_config.bulker.container_system == "docker":
+        bulker_config.bulker.executable_template = DOCKER_EXE_TEMPLATE
+        bulker_config.bulker.build_template = DOCKER_BUILD_TEMPLATE
+    elif bulker_config.bulker.container_system == "singularity":
+        bulker_config.bulker.executable_template = SINGULARITY_EXE_TEMPLLATE
+        bulker_config.bulker.build_template = DOCKER_BUILD_TEMPLATE
 
     if args.command == "list":
         # Output header via logger and content via print so the user can
         # redirect the list from stdout if desired without the header as clutter
         _LOGGER.info("Available crates:")
-        for crate, path in bulker_config.bulker.crates.items():
-            print("{}: {}".format(crate, path))
+        if bulker_config.bulker.crates:
+            for crate, path in bulker_config.bulker.crates.items():
+                print("{}: {}".format(crate, path))
+        else:
+            _LOGGER.info("No crates available. Use 'bulker load' to load a crate.")
         sys.exit(1)
 
     if args.command == "activate":
@@ -255,18 +269,15 @@ def main():
             sys.exit(1)
 
     if args.command == "load":
-        j2t = None
-        try:
-            template = os.path.join(TEMPLATE_FOLDER, bulker_config.bulker.executable_template)
-            _LOGGER.debug("Trying this template: {}".format(template))
-            assert(os.path.exists(template))
-        except:
-            _LOGGER.debug("Using docker template")
-            template = DOCKER_TEMPLATE
-        with open(template, 'r') as f:
+        exe_template_jinja = None
+        build_template_jinja = None
+        exe_template = os.path.join(TEMPLATE_FOLDER, bulker_config.bulker.executable_template)
+        build_template = os.path.join(TEMPLATE_FOLDER, bulker_config.bulker.build_template)
+        assert(os.path.exists(exe_template))
+        with open(exe_template, 'r') as f:
         # with open(DOCKER_TEMPLATE, 'r') as f:
             contents = f.read()
-            j2t = jinja2.Template(contents)
+            exe_template_jinja = jinja2.Template(contents)
 
         if is_url(args.manifest):
             _LOGGER.info("Got URL.")
@@ -277,16 +288,15 @@ def main():
             manifest = yacman.YacAttMap(yamldata=text)
         else:
             manifest = yacman.YacAttMap(filepath=args.manifest)
-        _LOGGER.info("Executable template: {}".format(template))
+        _LOGGER.info("Executable template: {}".format(exe_template))
 
-        build_template = None
         if args.build:
-            with open(args.build, 'r') as f:
-            # with open(DOCKER_TEMPLATE, 'r') as f:
+            _LOGGER.info("Building images.")
+            with open(build_template, 'r') as f:
                 contents = f.read()
-                build_template = jinja2.Template(contents)
+                build_template_jinja = jinja2.Template(contents)
 
-        bulker_load(manifest, bulker_config, j2t, args.path, build_template)
+        bulker_load(manifest, bulker_config, exe_template_jinja, args.path, build_template_jinja)
 
 
 if __name__ == '__main__':
