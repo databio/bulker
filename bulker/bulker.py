@@ -79,10 +79,14 @@ def build_argparser():
         sps[cmd] = add_subparser(cmd, desc)
         sps[cmd].add_argument(
             "-c", "--config", required=(cmd == "init"),
-            help="Divvy configuration file.")
+            help="Bulker configuration file.")
+
+    sps["init"].add_argument(
+            "-e", "--engine", choices={"docker", "singularity"}, default="docker",
+            help="Choose container engine. Default: 'docker'")
 
     sps["load"].add_argument(
-            "manifest", "-m", required=True,
+            "manifest",
             help="YAML file with executables to populate a crate.")    
 
     sps["load"].add_argument(
@@ -138,13 +142,13 @@ def _is_writable(folder, check_exist=False, create=False):
         return _is_writable(os.path.dirname(folder), strict_exists)
 
 
-def bulker_init(config_path, template_config_path):
+def bulker_init(config_path, template_config_path, engine):
     """
     Initialize a config file.
     
-    :param str config_path: path to divvy configuration file to 
+    :param str config_path: path to bulker configuration file to 
         create/initialize
-    :param str template_config_path: path to divvy configuration file to 
+    :param str template_config_path: path to bulker configuration file to 
         copy FROM
     """
     if not config_path:
@@ -161,8 +165,12 @@ def bulker_init(config_path, template_config_path):
         dest_folder = os.path.dirname(config_path)
         # copy_tree(os.path.dirname(template_config_path), dest_folder)
         new_template = os.path.join(os.path.dirname(config_path), os.path.basename(template_config_path))
-        copyfile(template_config_path, new_template)
-        os.rename(new_template, config_path)
+        bulker_config = yacman.YacAttMap(filepath=template_config_path)
+        _LOGGER.debug("Engine used: {}".format(engine))
+        bulker_config.bulker.container_engine = engine
+        bulker_config.write(config_path)
+        # copyfile(template_config_path, new_template)
+        # os.rename(new_template, config_path)
         _LOGGER.info("Wrote new configuration file: {}".format(config_path))
     else:
         _LOGGER.warning("Can't initialize, file exists: {} ".format(config_path))
@@ -233,20 +241,20 @@ def main():
 
     if args.command == "init":
         bulkercfg = args.config
-        _LOGGER.debug("Initializing divvy configuration")
+        _LOGGER.debug("Initializing bulker configuration")
         _is_writable(os.path.dirname(bulkercfg), check_exist=False)
-        bulker_init(bulkercfg, DEFAULT_CONFIG_FILEPATH)
+        bulker_init(bulkercfg, DEFAULT_CONFIG_FILEPATH, args.engine)
         sys.exit(0)      
 
     bulkercfg = select_bulker_config(args.config)
     _LOGGER.info("Bulker config: {}".format(bulkercfg))
     bulker_config = yacman.YacAttMap(filepath=bulkercfg)
-    if bulker_config.bulker.container_system == "docker":
+    if bulker_config.bulker.container_engine == "docker":
         bulker_config.bulker.executable_template = DOCKER_EXE_TEMPLATE
         bulker_config.bulker.build_template = DOCKER_BUILD_TEMPLATE
-    elif bulker_config.bulker.container_system == "singularity":
-        bulker_config.bulker.executable_template = SINGULARITY_EXE_TEMPLLATE
-        bulker_config.bulker.build_template = DOCKER_BUILD_TEMPLATE
+    elif bulker_config.bulker.container_engine == "singularity":
+        bulker_config.bulker.executable_template = SINGULARITY_EXE_TEMPLATE
+        bulker_config.bulker.build_template = SINGULARITY_BUILD_TEMPLATE
 
     if args.command == "list":
         # Output header via logger and content via print so the user can
@@ -291,7 +299,7 @@ def main():
         _LOGGER.info("Executable template: {}".format(exe_template))
 
         if args.build:
-            _LOGGER.info("Building images.")
+            _LOGGER.info("Building images with template: {}".format(build_template))
             with open(build_template, 'r') as f:
                 contents = f.read()
                 build_template_jinja = jinja2.Template(contents)
