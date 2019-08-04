@@ -71,7 +71,8 @@ def build_argparser():
         "init": "Initialize a new bulker config file",
         "list": "List available bulker crates",
         "load": "Create a new bulker crate from a container manifest",
-        "activate": "Activate a bulker crate by adding it to your PATH"
+        "activate": "Activate a bulker crate by adding it to your PATH",
+        "run": "Run a command in a crate"
     }
 
     sps = {}
@@ -88,6 +89,14 @@ def build_argparser():
     sps["load"].add_argument(
             "manifest",
             help="YAML file with executables to populate a crate.")    
+
+    sps["run"].add_argument(
+            "crate",
+            help="Choose the crate to activate before running")
+    
+    sps["run"].add_argument(
+            "cmd", metavar="command", nargs='*', 
+            help="Command to run")
 
     sps["load"].add_argument(
             "-p", "--path",
@@ -224,6 +233,16 @@ def bulker_activate(bulker_config, crate):
 
     os.system("bash")
 
+def bulker_run(bulker_config, crate, command):
+    _LOGGER.debug("Running.")
+    _LOGGER.debug("{}".format(command))
+    newpath = bulker_config.bulker.crates[crate] + os.pathsep + os.environ["PATH"]
+    os.environ["PATH"] = newpath  
+    export = "export PATH=\"{}\"".format(newpath)
+    merged_command = "{export}; {command}".format(export=export, command=" ".join(command))
+    _LOGGER.debug("{}".format(merged_command))
+    os.system(merged_command)
+
 def main():
     """ Primary workflow """
 
@@ -233,6 +252,8 @@ def main():
     logmuse.init_logger(name="yacman", **logger_kwargs)
     global _LOGGER
     _LOGGER = logmuse.logger_via_cli(args)
+
+    _LOGGER.debug("Command given: {}".format(args.command))
 
     if not args.command:
         parser.print_help()
@@ -271,6 +292,15 @@ def main():
         try:
             _LOGGER.info("Activating crate: {}\n".format(args.crate))
             bulker_activate(bulker_config, args.crate)
+        except KeyError:
+            parser.print_help(sys.stderr)
+            _LOGGER.error("{} is not an available crate".format(args.crate))
+            sys.exit(1)
+
+    if args.command == "run":
+        try:
+            _LOGGER.info("Activating crate: {}\n".format(args.crate))
+            bulker_run(bulker_config, args.crate, args.cmd)
         except KeyError:
             parser.print_help(sys.stderr)
             _LOGGER.error("{} is not an available crate".format(args.crate))
