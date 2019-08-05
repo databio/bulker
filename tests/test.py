@@ -1,0 +1,1 @@
+bulker_config = yacman.YacAttMap(filepath=bulkercfg)
