@@ -1,0 +1,7 @@
+manifest:
+  name: pi
+  commands:
+  - command: pi
+    docker_image: nsheff/pi
+    docker_command: pi
+    dockerargs: "-i"

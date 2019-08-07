@@ -1,0 +1,10 @@
+manifest:
+  name: demo
+  commands:
+  - command: cowsay
+    docker_image: nsheff/cowsay
+    docker_command: cowsay
+    dockerargs: "-i"
+  - command: fortune
+    docker_image: nsheff/fortune
+    docker_command: fortune

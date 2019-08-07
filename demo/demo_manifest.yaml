@@ -4,13 +4,18 @@ manifest:
   - command: samtools
     dockerargs: "-i"
     docker_image: quay.io/biocontainers/samtools:1.9--h91753b0_8
-  - command: python3
+  - command: python
     dockerargs: "-it"
-    docker_image: nsheff/python3
-    docker_command: python3
+    docker_image: python:3.7.4
+    docker_command: python
+  - command: R
+    dockerargs: "-it --volume=${HOME}/.local/lib/R:/usr/local/lib/R/host-site-library"
+    docker_image: r-base:3.6.1
+    docker_command: R
+  - command: Rscript
+    dockerargs: "--volume=${HOME}/.local/lib/R:/usr/local/lib/R/host-site-library"
+    docker_image: r-base:3.6.1
+    docker_command: Rscript  
   - command: pandoc
     docker_image: nsheff/pandoc
     dockerargs: "-i"
-  - command: cowsay
-    docker_image: docker/whalesay
-    docker_command: cowsay

@@ -1,21 +1,30 @@
-# <img src="img/bulker_logo.svg" class="img-header"> container executable manager
+# <img src="img/bulker_logo.svg" class="img-header"> containers made easy
 
 [![PEP compatible](https://pepkit.github.io/img/PEP-compatible-green.svg)](http://pepkit.github.io)
 
 ## What is `bulker`?
 
-`Bulker` is a command-line manager of containerized executables. It produces drop-in replacements to command line tools so that they can be run in a container without any additional user effort. Together with a repository of images, this makes it simple to distribute and use modular containers.
+`Bulker` manages collections of containerized executables. It builds drop-in replacements to command line-tools that act just like native tools, but are run in a container. Think of `bulker` as a lightweight wrapper on top of `docker`/`singularity` to simplify sharing and using compute environments that run containers.
 
 ## What makes `bulker` useful?
 
-1. **It produces containerized drop-in replacement executables**. After loading `pandoc`, you'll invoke it with nothing more than `pandoc` on the command line. Bulker wraps the container details `docker run -it --volume ...`, so native workflows become immediately containerized. *You'll be using containers without knowing it*. 
+1. **It produces containerized drop-in replacement executables**. If you load `pandoc` with bulker, you'll invoke it in a shell by typing just "`pandoc`". Bulker wraps the container details like "`docker run -it --volume ...`", so native workflows become immediately containerized. *You'll be using containers without knowing it*. 
 
 2. **It improves portability by decoupling environment from tool settings**. Running a container integrates variables from the environment (*e.g.* volumes to mount) with tool specifics (*e.g.* command, image source). Bulker decouples these, making the container manifest portable.
 
-3. **It distributes collections of containers**. Bulker simplifies distributing a set of related container executables in a *crate*, like all the tools needed to run a workflow. Install a whole set with one command: `bulker load -m crate_manifest.yaml`. Workflow authors need only provide a manifest to containerize a workflow.
-
+3. **It distributes collections of containers**. Bulker simplifies distributing a set of related container executables in a *crate*, like all the tools needed to run a workflow. Install a whole set with one command: `bulker load crate_manifest.yaml`. Workflow authors need only provide a manifest to containerize a workflow.
 
 For more, read [my motivation](motivation.md).
+
+## Is `bulker` a package manager? How is it different?
+
+`Bulker` is not a package manager, but it *can* replace some package manager tasks. For example, instead of installing software natively using your package manager, you could load it using bulker. The differences is: 
+
+- **Bulker uses containers**. Other package managers install packages/tools natively, but bulker does not. Bulker tools are *all containerized*, so bulker relies on existing infrastructure from docker. 
+
+- **Bulker is 'collection first'**. Most package managers operate on tools (*e.g.* `pip install tool`, `conda install tool`, or `apt install tool`). Bulker operates on *collections*: `bulker install set`.
+
+With these two features, `bulker` makes it easier than a traditional package manager to distribute and use a standard computing environment. 
 
 ## Quick start
 

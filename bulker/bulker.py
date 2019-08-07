@@ -236,20 +236,38 @@ def bulker_load(manifest, bulker_config, jinja2_template, crate_path=None, build
 
 def bulker_activate(bulker_config, crate):
     # activating is as simple as adding a crate folder to the PATH env var.
-    newpath = bulker_config.bulker.crates[crate] + os.pathsep + os.environ["PATH"]
+    newpath = cratepaths(crate, bulker_config)
     os.environ["PATH"] = newpath
 
-    os.system("bash")
+    # os.system("bash")
+    os.execlp("bash", "bulker")
+    os._exit(-1)
+
+def cratepaths(crates, bulker_config):
+    if "," in crates:
+        crates = crates.split(",")
+    elif isinstance(crates, str):
+        crates = [crates]
+    
+    cratepaths = ""
+    for crate in crates:
+        cratepaths += bulker_config.bulker.crates[crate] + os.pathsep
+    newpath = cratepaths + os.pathsep + os.environ["PATH"]
+    return newpath
 
 def bulker_run(bulker_config, crate, command):
     _LOGGER.debug("Running.")
     _LOGGER.debug("{}".format(command))
-    newpath = bulker_config.bulker.crates[crate] + os.pathsep + os.environ["PATH"]
+    newpath = cratepaths(crate, bulker_config)
     os.environ["PATH"] = newpath  
     export = "export PATH=\"{}\"".format(newpath)
     merged_command = "{export}; {command}".format(export=export, command=" ".join(command))
     _LOGGER.debug("{}".format(merged_command))
-    os.system(merged_command)
+    # os.system(merged_command)
+    # os.execlp(command[0], merged_command)
+    import subprocess
+    subprocess.call(merged_command, shell=True)
+
 
 def main():
     """ Primary workflow """
