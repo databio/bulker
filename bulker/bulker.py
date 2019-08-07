@@ -13,7 +13,7 @@ from yaml import SafeLoader
 # from distutils.dir_util import copy_tree
 from shutil import copyfile
 
-from ubiquerg import is_url
+from ubiquerg import is_url, is_command_callable
 
 import yacman
 from collections import OrderedDict
@@ -71,7 +71,8 @@ def build_argparser():
         "init": "Initialize a new bulker config file",
         "list": "List available bulker crates",
         "load": "Create a new bulker crate from a container manifest",
-        "activate": "Activate a bulker crate by adding it to your PATH"
+        "activate": "Activate a bulker crate by adding it to your PATH",
+        "run": "Run a command in a crate"
     }
 
     sps = {}
@@ -82,12 +83,20 @@ def build_argparser():
             help="Bulker configuration file.")
 
     sps["init"].add_argument(
-            "-e", "--engine", choices={"docker", "singularity"}, default="docker",
-            help="Choose container engine. Default: 'docker'")
+            "-e", "--engine", choices={"docker", "singularity", }, default=None,
+            help="Choose container engine. Default: 'guess'")
 
     sps["load"].add_argument(
             "manifest",
             help="YAML file with executables to populate a crate.")    
+
+    sps["run"].add_argument(
+            "crate",
+            help="Choose the crate to activate before running")
+    
+    sps["run"].add_argument(
+            "cmd", metavar="command", nargs='*', 
+            help="Command to run")
 
     sps["load"].add_argument(
             "-p", "--path",
@@ -142,7 +151,7 @@ def _is_writable(folder, check_exist=False, create=False):
         return _is_writable(os.path.dirname(folder), strict_exists)
 
 
-def bulker_init(config_path, template_config_path, engine):
+def bulker_init(config_path, template_config_path, container_engine=None):
     """
     Initialize a config file.
     
@@ -159,6 +168,13 @@ def bulker_init(config_path, template_config_path, engine):
         _LOGGER.error("You must specify a template config file path.")
         return
 
+    if not container_engine:
+        check_engines = ["docker", "singularity"]
+        for engine in check_engines:
+            if is_command_callable(engine):
+                _LOGGER.info("Guessing container engine is {}.".format(engine))
+                container_engine = engine
+
     if config_path and not os.path.exists(config_path):
         # dcc.write(config_path)
         # Init should *also* write the templates.
@@ -166,8 +182,8 @@ def bulker_init(config_path, template_config_path, engine):
         # copy_tree(os.path.dirname(template_config_path), dest_folder)
         new_template = os.path.join(os.path.dirname(config_path), os.path.basename(template_config_path))
         bulker_config = yacman.YacAttMap(filepath=template_config_path)
-        _LOGGER.debug("Engine used: {}".format(engine))
-        bulker_config.bulker.container_engine = engine
+        _LOGGER.debug("Engine used: {}".format(container_engine))
+        bulker_config.bulker.container_engine = container_engine
         bulker_config.write(config_path)
         # copyfile(template_config_path, new_template)
         # os.rename(new_template, config_path)
@@ -180,12 +196,12 @@ def bulker_load(manifest, bulker_config, jinja2_template, crate_path=None, build
     manifest_name = manifest.manifest.name
     if not crate_path:
         crate_path = os.path.join(bulker_config.bulker.default_crate_folder, manifest_name)
+    _LOGGER.debug("Crate path: {}".format(crate_path))
     os.makedirs(crate_path, exist_ok=True)
-    _LOGGER.info("Loading manifest: '{m}'. Activate with 'bulker activate {m}'.".format(m=manifest_name))
     cmdlist = []
-
     for pkg in manifest.manifest.commands:
         _LOGGER.debug(pkg)
+        pkg = yacman.YacAttMap(pkg)  # (otherwise it's just a dict)
         pkg.update(bulker_config.bulker)
         if "singularity_image_folder" in pkg:
             pkg["singularity_image"] = os.path.basename(pkg["docker_image"])
@@ -208,6 +224,7 @@ def bulker_load(manifest, bulker_config, jinja2_template, crate_path=None, build
                 _LOGGER.error("------------------------------------------------")
             _LOGGER.info("Container available at: {cmd}".format(cmd=pkg["singularity_fullpath"]))
 
+    _LOGGER.info("Loading manifest: '{m}'. Activate with 'bulker activate {m}'.".format(m=manifest_name))
     _LOGGER.info("Commands available: {}".format(", ".join(cmdlist)))
 
 
@@ -219,10 +236,38 @@ def bulker_load(manifest, bulker_config, jinja2_template, crate_path=None, build
 
 def bulker_activate(bulker_config, crate):
     # activating is as simple as adding a crate folder to the PATH env var.
-    newpath = bulker_config.bulker.crates[crate] + os.pathsep + os.environ["PATH"]
+    newpath = cratepaths(crate, bulker_config)
     os.environ["PATH"] = newpath
 
-    os.system("bash")
+    # os.system("bash")
+    os.execlp("bash", "bulker")
+    os._exit(-1)
+
+def cratepaths(crates, bulker_config):
+    if "," in crates:
+        crates = crates.split(",")
+    elif isinstance(crates, str):
+        crates = [crates]
+    
+    cratepaths = ""
+    for crate in crates:
+        cratepaths += bulker_config.bulker.crates[crate] + os.pathsep
+    newpath = cratepaths + os.pathsep + os.environ["PATH"]
+    return newpath
+
+def bulker_run(bulker_config, crate, command):
+    _LOGGER.debug("Running.")
+    _LOGGER.debug("{}".format(command))
+    newpath = cratepaths(crate, bulker_config)
+    os.environ["PATH"] = newpath  
+    export = "export PATH=\"{}\"".format(newpath)
+    merged_command = "{export}; {command}".format(export=export, command=" ".join(command))
+    _LOGGER.debug("{}".format(merged_command))
+    # os.system(merged_command)
+    # os.execlp(command[0], merged_command)
+    import subprocess
+    subprocess.call(merged_command, shell=True)
+
 
 def main():
     """ Primary workflow """
@@ -233,6 +278,8 @@ def main():
     logmuse.init_logger(name="yacman", **logger_kwargs)
     global _LOGGER
     _LOGGER = logmuse.logger_via_cli(args)
+
+    _LOGGER.debug("Command given: {}".format(args.command))
 
     if not args.command:
         parser.print_help()
@@ -271,6 +318,15 @@ def main():
         try:
             _LOGGER.info("Activating crate: {}\n".format(args.crate))
             bulker_activate(bulker_config, args.crate)
+        except KeyError:
+            parser.print_help(sys.stderr)
+            _LOGGER.error("{} is not an available crate".format(args.crate))
+            sys.exit(1)
+
+    if args.command == "run":
+        try:
+            _LOGGER.info("Activating crate: {}\n".format(args.crate))
+            bulker_run(bulker_config, args.crate, args.cmd)
         except KeyError:
             parser.print_help(sys.stderr)
             _LOGGER.error("{} is not an available crate".format(args.crate))
