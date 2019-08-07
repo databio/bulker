@@ -20,21 +20,6 @@ For more, read [my motivation](motivation.md).
 
 `Bulker` is not a package manager, but it *can* replace some package manager tasks. For example, instead of installing software natively using your package manager, you could load it using bulker. 
 
-Old way:
-
-```console
-sudo apt install cowsay
-sudo apt install fortune
-cowsay | fortune
-```
-
-New way:
-```console
-bulker load http://big.databio.org/bulker/cowsay_fortune.yaml
-bulker run demo "cowsay | fortune"
-```
-
-
 The difference is: 
 
 - **Bulker uses containers**. Package managers install packages/tools natively, but bulker does not. Bulker tools are *all containerized*, so bulker relies on existing infrastructure from docker. 
