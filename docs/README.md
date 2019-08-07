@@ -18,13 +18,30 @@ For more, read [my motivation](motivation.md).
 
 ## Is `bulker` a package manager? How is it different?
 
-`Bulker` is not a package manager, but it *can* replace some package manager tasks. For example, instead of installing software natively using your package manager, you could load it using bulker. The differences is: 
+`Bulker` is not a package manager, but it *can* replace some package manager tasks. For example, instead of installing software natively using your package manager, you could load it using bulker. 
 
-- **Bulker uses containers**. Other package managers install packages/tools natively, but bulker does not. Bulker tools are *all containerized*, so bulker relies on existing infrastructure from docker. 
+Old way:
 
-- **Bulker is 'collection first'**. Most package managers operate on tools (*e.g.* `pip install tool`, `conda install tool`, or `apt install tool`). Bulker operates on *collections*: `bulker install set`.
+```console
+sudo apt install cowsay
+sudo apt install fortune
+cowsay | fortune
+```
 
-With these two features, `bulker` makes it easier than a traditional package manager to distribute and use a standard computing environment. 
+New way:
+```console
+bulker load http://big.databio.org/bulker/cowsay_fortune.yaml
+bulker run demo "cowsay | fortune"
+```
+
+
+The difference is: 
+
+- **Bulker uses containers**. Package managers install packages/tools natively, but bulker does not. Bulker tools are *all containerized*, so bulker relies on existing infrastructure from docker. 
+
+- **Bulker is 'collection first'**. Most package managers operate on tools (*e.g.* `pip install tool`, `conda install tool`, or `apt install tool`). Bulker operates on *collections*: `bulker load set`.
+
+With these two features, `bulker` makes it easier than a traditional package manager to distribute and use a standard, version-controlled computing environment. 
 
 ## Quick start
 
@@ -36,10 +53,10 @@ pip install --user bulker
 
 ### 2 Load a crate
 
-A bulker crate is a collection of executables that run inside containers. To load a bulker crate, you need a manifest, which lists the commands and images included in this crate. Use [demo_manifest.txt](https://raw.githubusercontent.com/databio/bulker/master/demo/demo_manifest.yaml) for example:
+A bulker crate is a collection of executables that run inside containers. To load a bulker crate, you need a manifest, which lists the commands and images included in this crate. Use [cowsay_fortune.yaml](http://big.databio.org/bulker/cowsay_fortune.yaml) for example:
 
 ```console
-bulker load https://raw.githubusercontent.com/databio/bulker/master/demo/demo_manifest.yaml
+bulker load http://big.databio.org/bulker/cowsay_fortune.yaml
 ```
 
 Loading this crate will give you drop-in replacement command-line executables for any commands in the manifest.

@@ -1,8 +1,9 @@
 # Changelog
 
-## [0.0.3] -- Unreleased
+## [0.1.0] -- 2019-08-07
 - Add `bulker run` to execute a command in a crate
 - `bulker init` will now guess `docker` or `singularity`
+- `activate` and `run` commands now accept a comma-separated list of crates.
 
 ## [0.0.2] -- 2019-08-01
 - No longer require `-m` for `bulker load`

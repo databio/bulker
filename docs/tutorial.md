@@ -1,5 +1,7 @@
 # Tutorial
 
+I assume you've already gone through the [install and configure](install.md) instructions.
+
 ## Terminology
 
 Let's start with a few terms:
@@ -23,8 +25,7 @@ bulker list
 
 Let's load a demo crate. Here's a manifest that describes 2 commands ([http://big.databio.org/bulker/cowsay_fortune.yaml](http://big.databio.org/bulker/cowsay_fortune.yaml)):
 
-```
-> yaml
+```yaml
 manifest:
   name: demo
   version: 1.0.0
@@ -77,6 +78,7 @@ The response is:
 ```
 Bulker config: /bulker_config.yaml
 Activating crate: demo
+
  ____________________________________
 / It's lucky you're going so slowly, \
 | because you're going in the wrong  |
