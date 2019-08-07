@@ -8,6 +8,10 @@ manifest:
     dockerargs: "-it"
     docker_image: python:3.7.4
     docker_command: python
+  - command: pip
+    dockerargs: "-it"
+    docker_image: python:3.7.4
+    docker_command: pip
   - command: R
     dockerargs: "-it --volume=${HOME}/.local/lib/R:/usr/local/lib/R/host-site-library"
     docker_image: r-base:3.6.1

@@ -1,5 +1,6 @@
 manifest:
   name: demo
+  version: 1.0.0
   commands:
   - command: cowsay
     docker_image: nsheff/cowsay
@@ -8,3 +9,4 @@ manifest:
   - command: fortune
     docker_image: nsheff/fortune
     docker_command: fortune
+    
