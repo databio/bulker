@@ -112,6 +112,10 @@ def build_argparser():
             "crate",
             help="Crate to activate.")
 
+    sps["activate"].add_argument(
+            "-e", "--echo", action='store_true', default=False,
+            help="Echo command instead of running it.")
+
     return parser
 
 
@@ -235,14 +239,16 @@ def bulker_load(manifest, bulker_config, jinja2_template, crate_path=None, build
     bulker_config.bulker.crates[manifest_name] = crate_path
     bulker_config.write()
 
-def bulker_activate(bulker_config, crate):
+def bulker_activate(bulker_config, crate, echo=False):
     # activating is as simple as adding a crate folder to the PATH env var.
     newpath = cratepaths(crate, bulker_config)
-    os.environ["PATH"] = newpath
-
-    # os.system("bash")
-    os.execlp("bash", "bulker")
-    os._exit(-1)
+    if echo:
+        print("export PATH={}".format(newpath))
+    else:
+        os.environ["PATH"] = newpath
+        # os.system("bash")
+        os.execlp("bash", "bulker")
+        os._exit(-1)
 
 def cratepaths(crates, bulker_config):
     if "," in crates:
@@ -318,7 +324,7 @@ def main():
     if args.command == "activate":
         try:
             _LOGGER.info("Activating crate: {}\n".format(args.crate))
-            bulker_activate(bulker_config, args.crate)
+            bulker_activate(bulker_config, args.crate, echo=args.echo)
         except KeyError:
             parser.print_help(sys.stderr)
             _LOGGER.error("{} is not an available crate".format(args.crate))
