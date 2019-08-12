@@ -95,8 +95,9 @@ def build_argparser():
             help="Choose the crate to activate before running")
     
     sps["run"].add_argument(
-            "cmd", metavar="command", nargs='*', 
+            "cmd", metavar="command", nargs=argparse.REMAINDER, 
             help="Command to run")
+
 
     sps["load"].add_argument(
             "-p", "--path",
