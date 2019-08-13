@@ -6,13 +6,13 @@ I assume you've already gone through the [install and configure](install.md) ins
 
 Let's start with a few terms:
 
-1. **crate**. A collection of containerized executables. A crate is loaded from a manifest.
+1. **crate**. A collection of containerized executables. A crate is loaded from a manifest. A crate is analogous to a docker image (but it contains multiple images).
 
-2. **manifest**. A list of commands to be included in a crate.
+2. **manifest**. A list of commands to be included in a crate. A manifest is analogous to a Dockerfile.
 
-3. **load**. Loading a manifest will create a folder with executables for each command in the manifest. The folder is named after the manifest.
+3. **load**. Loading a manifest will create a folder with executables for each command in the manifest. The folder is named after the manifest. Loading a manifest is analogous to building or pulling an image.
 
-4. **activate**. Any loaded crates are available to activate. Activiating a crate does nothing more than prepend the crate folder to your `PATH` variable, giving you easy access to the executables.
+4. **activate**. Any loaded crates are available to activate. Activating a crate does nothing more than prepend the crate folder to your `PATH` variable, giving you easy access to the executables. Activating is analogous to starting a container.
 
 
 ## Loading crates
@@ -23,7 +23,7 @@ I assume you've followed the instructions to [install and configure](install.md)
 bulker list
 ```
 
-Let's load a demo crate. Here's a manifest that describes 2 commands ([http://big.databio.org/bulker/cowsay_fortune.yaml](http://big.databio.org/bulker/cowsay_fortune.yaml)):
+Let's load a demo crate. Here's a [manifest](http://big.databio.org/bulker/bulker/demo.yaml) that describes 2 commands:
 
 ```yaml
 manifest:
@@ -39,16 +39,23 @@ manifest:
     docker_command: fortune
 ```
 
-Load it like this: 
+There are a few ways to load a manifest. This one is easy because it's already included in the bulker registry, so you can load it like this: 
 
+```console
+bulker load demo
 ```
-bulker load http://big.databio.org/bulker/cowsay_fortune.yaml
+
+You could also load any manifest, either local or remote, by just pointing to the yaml file:
+
+```console
+bulker load http://big.databio.org/bulker/bulker/demo.yaml
+bulker load local/path/to/demo.yaml
 ```
 
 Now if you type `bulker list` you should see the `demo` crate available for activation. But first, let's point out the `-b` argument, which you can pass to `bulker load`. By default, all `bulker load` does is create a folder of executables. *It does not actually pull or build any images*. Docker will automatically pull these by default as soon as you use them, which is nice, but you might rather just grab them all now instead of waiting for that. In this case, just pass `-b` to your `bulker load` command:
 
-```
-bulker load http://big.databio.org/bulker/cowsay_fortune.yaml -b
+```console
+bulker load demo -b
 ```
 
 Now, bulker will instruct docker (or singularity) to pull all the images required for all the executables in this crate.
@@ -58,7 +65,7 @@ Now, bulker will instruct docker (or singularity) to pull all the images require
 
 Once you have loaded a crate, all it means is there's a folder somewhere on your computer with a bunch of executables. You can use it like that if you like, but it simplifies things if you add these commands to your `PATH`.  Of course, you could do it manually...
 
-```
+```console
 export PATH="$HOME/bulker_crates/demo/:$PATH"
 ```
 
