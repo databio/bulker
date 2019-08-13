@@ -388,8 +388,11 @@ def main():
         matched = parse_crate_string(manifest_id)
         if matched:
             # assemble the query string
-            # base_url = "http://bulker.io"
-            base_url = "http://big.databio.org/bulker/"
+            if 'registry_url' in bulker_config.bulker:
+                base_url = bulker_config.bulker.registry_url
+            else:
+                # base_url = "http://bulker.io"
+                base_url = "http://big.databio.org/bulker/"
             query = matched["crate_name"]
             if matched["version"]:
                 query = query + "_" + matched["version"]
@@ -403,7 +406,7 @@ def main():
             manifest_id = crate_url
 
         if is_url(manifest_id):
-            _LOGGER.info("Got URL: {}".manifest_id)
+            _LOGGER.info("Got URL: {}".format(manifest_id))
             import urllib.request
             try:
                 response = urllib.request.urlopen(manifest_id)
