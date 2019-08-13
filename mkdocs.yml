@@ -13,6 +13,7 @@ nav:
     - "Tutorial": tutorial.md
     - Write a manifest: manifest.md
   - Reference:
+    - Tips: tips.md
     - Support: https://github.com/databio/bulker/issues
     - Changelog: changelog.md
 

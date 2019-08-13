@@ -6,6 +6,7 @@ import jinja2
 import logging
 import logmuse
 import os
+import re
 import sys
 import shutil
 import yaml
@@ -88,19 +89,21 @@ def build_argparser():
 
     sps["load"].add_argument(
             "manifest",
-            help="YAML file with executables to populate a crate.")    
+            help="Either a bulker identifier for a remote manifest or a local "
+            "manifest to populate a crate.")    
 
     sps["run"].add_argument(
             "crate",
             help="Choose the crate to activate before running")
     
     sps["run"].add_argument(
-            "cmd", metavar="command", nargs='*', 
+            "cmd", metavar="command", nargs=argparse.REMAINDER, 
             help="Command to run")
+
 
     sps["load"].add_argument(
             "-p", "--path",
-            help="Path to crate you will build.")
+            help="Destination path for built crate.")
 
     sps["load"].add_argument(
             "-b", "--build", action='store_true', default=False,
@@ -110,6 +113,10 @@ def build_argparser():
     sps["activate"].add_argument(
             "crate",
             help="Crate to activate.")
+
+    sps["activate"].add_argument(
+            "-e", "--echo", action='store_true', default=False,
+            help="Echo command instead of running it.")
 
     return parser
 
@@ -234,14 +241,16 @@ def bulker_load(manifest, bulker_config, jinja2_template, crate_path=None, build
     bulker_config.bulker.crates[manifest_name] = crate_path
     bulker_config.write()
 
-def bulker_activate(bulker_config, crate):
+def bulker_activate(bulker_config, crate, echo=False):
     # activating is as simple as adding a crate folder to the PATH env var.
     newpath = cratepaths(crate, bulker_config)
-    os.environ["PATH"] = newpath
-
-    # os.system("bash")
-    os.execlp("bash", "bulker")
-    os._exit(-1)
+    if echo:
+        print("export PATH={}".format(newpath))
+    else:
+        os.environ["PATH"] = newpath
+        # os.system("bash")
+        os.execlp("bash", "bulker")
+        os._exit(-1)
 
 def cratepaths(crates, bulker_config):
     if "," in crates:
@@ -267,6 +276,37 @@ def bulker_run(bulker_config, crate, command):
     # os.execlp(command[0], merged_command)
     import subprocess
     subprocess.call(merged_command, shell=True)
+
+
+
+# Examples
+# parse_crate_string("abc")
+# parse_crate_string("abc:123")
+# parse_crate_string("name/abc:123")
+# parse_crate_string("http://www.databio.org")
+def parse_crate_string(string):
+    """
+    Parses a crate identifier into namespace, crate name, and version components.
+
+    Given an identifer of syntax namespace/crate:version, this will return a
+    dict with 3 named entries for each element in the string. Namespace and
+    version may be omitted and will return None in those slots. Strings not of
+    this format will return None objects.
+    :param str string: string identifying crate to parse
+
+    """
+    res = re.match("^(?:([0-9a-zA-Z_-]+)\/)?([0-9a-zA-Z_-]+)(?::([0-9a-zA-Z_.-]+))?$", string)
+    if not res:
+        return None
+    # position 1: namespace
+    # position 2: crate name
+    # position 3: version string
+    parsed_identifier = {
+        "namespace": res[1],
+        "crate_name": res[2],
+        "version": res[3]
+    }
+    return parsed_identifier
 
 
 def main():
@@ -317,7 +357,7 @@ def main():
     if args.command == "activate":
         try:
             _LOGGER.info("Activating crate: {}\n".format(args.crate))
-            bulker_activate(bulker_config, args.crate)
+            bulker_activate(bulker_config, args.crate, echo=args.echo)
         except KeyError:
             parser.print_help(sys.stderr)
             _LOGGER.error("{} is not an available crate".format(args.crate))
@@ -343,15 +383,45 @@ def main():
             contents = f.read()
             exe_template_jinja = jinja2.Template(contents)
 
-        if is_url(args.manifest):
-            _LOGGER.info("Got URL.")
+
+        manifest_id = args.manifest
+        matched = parse_crate_string(manifest_id)
+        if matched:
+            # assemble the query string
+            if 'registry_url' in bulker_config.bulker:
+                base_url = bulker_config.bulker.registry_url
+            else:
+                # base_url = "http://bulker.io"
+                base_url = "http://big.databio.org/bulker/"
+            query = matched["crate_name"]
+            if matched["version"]:
+                query = query + "_" + matched["version"]
+            if not matched["namespace"]:
+                matched["namespace"] = "bulker"  # default namespace
+            query = matched["namespace"] + "/" + query
+            # Until we have an API:
+            query = query + ".yaml"
+
+            crate_url = os.path.join(base_url, query)
+            manifest_id = crate_url
+
+        if is_url(manifest_id):
+            _LOGGER.info("Got URL: {}".format(manifest_id))
             import urllib.request
-            response = urllib.request.urlopen(args.manifest)
+            try:
+                response = urllib.request.urlopen(manifest_id)
+            except urllib.error.HTTPError as e:
+                if matched:
+                    _LOGGER.error("The requested manifest '{}' is not found on the bulker server".format(
+                        args.manifest))
+                    sys.exit(1)
+                else:
+                    raise e
             data = response.read()      # a `bytes` object
             text = data.decode('utf-8')
             manifest = yacman.YacAttMap(yamldata=text)
         else:
-            manifest = yacman.YacAttMap(filepath=args.manifest)
+            manifest = yacman.YacAttMap(filepath=manifest_id)
         _LOGGER.info("Executable template: {}".format(exe_template))
 
         if args.build:
