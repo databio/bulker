@@ -19,7 +19,7 @@ Let's start with a few terms:
 
 I assume you've followed the instructions to [install and configure](install.md) bulker. Next, type `bulker list` to see what crates you have available. If you've not loaded anything, it should be empty:
 
-```
+```console
 bulker list
 ```
 
@@ -63,26 +63,20 @@ Now, bulker will instruct docker (or singularity) to pull all the images require
 
 ## Running commands using bulker crates
 
-Once you have loaded a crate, all it means is there's a folder somewhere on your computer with a bunch of executables. You can use it like that if you like, but it simplifies things if you add these commands to your `PATH`.  Of course, you could do it manually...
+Once you have loaded a crate, all it means is there's a folder somewhere on your computer with a bunch of executables. You can use it like that if you like, but it simplifies things if you add these commands to your `PATH`. Bulker provides two ways to do this conveniently, depending on your use case: `bulker activate`, and `bulker run`.
 
-```console
-export PATH="$HOME/bulker_crates/demo/:$PATH"
-```
-
-You could even make this to be permanent, by adding this line in your `.bashrc`. And that's it; you don't need to use bulker any more. But `bulker` also provides two ways to make it more convenient, depending on your use case: `bulker activate`, and `bulker run`.
-
-- *activate*. This will add all commands from a given crate to your PATH and give you a terminal where you can use them.  If you want to manage these crates like namespaces that you can turn on or off, then `bulker activate demo`. This is useful for controlling which software versions are used for which tasks, because the manifest controls the versions of software included in a crate.
+- *activate*. This will add all commands from a given crate to your PATH and give you a terminal where you can use them. You want to use activate if you want to manage crates like namespaces that you can turn on or off. This is useful for controlling which software versions are used for which tasks, because the manifest controls the versions of software included in a crate.
 
 - *run*. This will run a single command in a new environment that has a crate prepended to the PATH.
 
 Try it out with this command:
 
-```
+```console
 bulker run demo "fortune | cowsay"
 ```
 
 The response is:
-```
+```console
 Bulker config: /bulker_config.yaml
 Activating crate: demo
 
@@ -98,19 +92,23 @@ Activating crate: demo
                 ||     ||
 ```
 
-What's key here is that our command is actually using *two* commands: `fortune` and `cowsay`. We have both of these commands in our PATH because they're both included in the crate.
+## The advantage of bulker over vanilla containers
+
+On the surface, this seems the same as running this command in a container that includes both fortune and cowsay. Indeed, the user experience is pretty similar. What separates this process from a typical container use is that our command is actually not running in a container, but in the host shell, and using *two commands that each run in separate containers*. There is no container that contains both `fortune` and `cowsay`; instead, we have individual containers for each command, and then wrapped each command in an executable. Both of these commands are in our PATH because they're both included in the crate.
 
 ## Activating multiple crates
 
-You can also pass a comma-separated list of crates to either `run` or `activate`. This is useful to merge executables from two different rates. As an example, let's load another demo crate that adds a new command `pi`, which prints out `pi` to many digits. We can get our cow to quote these pi definitions by activating both of these crates.
+You can also pass a comma-separated list of crates to either `run` or `activate`, which will merge executables from two different crates. This is not practical using vanilla containers because it requires you to build a new container that contained the software from both containers, which would eliminate the advantages of modularity and increase container bloat and disk use. 
+
+As an example, let's load another demo crate that adds a new command `pi`, which prints out `pi` to many digits. We can get our cow to quote these pi definitions by activating both of these crates.
 
 ```console
-bulker load http://big.databio.org/bulker/pi_manifest.yaml -b
+bulker load pi -b
 ```
 
 Now try running a command that requires commands from two different crates:
 
-```
+```console
 bulker run pi,demo "pi | cowsay"
 ```
 
