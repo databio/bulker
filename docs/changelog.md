@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.1.2] -- 2019-08-14
+- Fix a bug with compatibility of load from registry for older pythons (2.7/3.4).
+
 ## [0.1.1] -- 2019-08-13
 - Allows `activate` to return the export command, to enable `bulker-activate` shell approach (see tips)
 - Implements initial bulker registry (file server version)

@@ -1,0 +1,17 @@
+language: python
+python:
+  - "2.7"
+  - "3.4"
+  - "3.6"
+  - "3.7"
+os:
+  - linux
+install:
+  - pip install --upgrade six
+  - pip install .
+script: pytest
+branches:
+  only:
+    - dev
+    - master
+

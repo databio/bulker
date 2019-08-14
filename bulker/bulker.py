@@ -301,11 +301,13 @@ def parse_crate_string(string):
     # position 1: namespace
     # position 2: crate name
     # position 3: version string
+    captures = res.groups()
     parsed_identifier = {
-        "namespace": res[1],
-        "crate_name": res[2],
-        "version": res[3]
+        "namespace": captures[0],
+        "crate_name": captures[1],
+        "version": captures[2]
     }
+    _LOGGER.debug(parsed_identifier)
     return parsed_identifier
 
 
