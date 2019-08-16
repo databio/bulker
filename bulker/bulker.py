@@ -358,7 +358,7 @@ def main():
 
     if args.command == "activate":
         try:
-            _LOGGER.info("Activating crate: {}\n".format(args.crate))
+            _LOGGER.info("Activating bulker crate: {}\n".format(args.crate))
             bulker_activate(bulker_config, args.crate, echo=args.echo)
         except KeyError:
             parser.print_help(sys.stderr)
