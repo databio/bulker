@@ -29,11 +29,11 @@ For now, check out these examples at [big.databio.org/bulker](http://big.databio
 
 Demos:
 
-- [demo manifest](http://big.databio.org/bulker/demo_manifest.yaml)
-- [pi manifest](http://big.databio.org/bulker/demo_manifest.yaml)
+- [demo manifest](http://big.databio.org/bulker/demo.yaml)
+- [pi manifest](http://big.databio.org/bulker/pi.yaml)
 - [cowsay+fortune](http://big.databio.org/bulker/cowsay_fortune.yaml)
 
 Real-life manifests:
 
-- [my personal manifest](http://big.databio.org/bulker/nsheff_bulker_manifest.yaml)
-- [peppro pipeline manifest](http://big.databio.org/bulker/peppro_bulker_manifest.yaml)
+- [my personal manifest](http://big.databio.org/bulker/databio/nsheff.yaml)
+- [peppro pipeline manifest](http://big.databio.org/bulker/databio/peppro.yaml)

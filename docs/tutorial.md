@@ -23,7 +23,11 @@ I assume you've followed the instructions to [install and configure](install.md)
 bulker list
 ```
 
-Let's load a demo crate. Here's a [manifest](http://big.databio.org/bulker/bulker/demo.yaml) that describes 2 commands:
+Let's load a demo crate. There are a few ways to load a manifest: either from a bulker registry, or directly from a file.
+
+### Using a bulker registry
+
+Here's a [manifest](http://big.databio.org/bulker/bulker/demo.yaml) that describes 2 commands:
 
 ```yaml
 manifest:
@@ -39,20 +43,26 @@ manifest:
     docker_command: fortune
 ```
 
-There are a few ways to load a manifest. This one is easy because it's already included in the bulker registry, so you can load it like this: 
+This manifest is located in the bulker registry, under the name `bulker/demo`. Here 'bulker' is the namespace (think of it as the group name) and 'demo' is the name of the crate to load. Since 'bulker' is the default namespace, you can load it like this: 
 
 ```console
 bulker load demo
 ```
 
-You could also load any manifest, either local or remote, by just pointing to the yaml file and using the `-f` argument to point to the manifest file (aka cratefile):
+Doing `bulker load bulker/demo:default` would do the same thing. That's how you load any crate, from any namespace, from the registry.
+
+### Loading creates from a file
+
+You can also load any manifest by pointing to the yaml file with the `-f` argument:
 
 ```console
 bulker load demo -f http://big.databio.org/bulker/bulker/demo.yaml
 bulker load demo -f local/path/to/demo.yaml
 ```
 
-Now if you type `bulker list` you should see the `demo` crate available for activation. But first, let's point out the `-b` argument, which you can pass to `bulker load`. By default, all `bulker load` does is create a folder of executables. *It does not actually pull or build any images*. Docker will automatically pull these by default as soon as you use them, which is nice, but you might rather just grab them all now instead of waiting for that. In this case, just pass `-b` to your `bulker load` command:
+Here, the registry path ('demo') indicates to bulker what you want to name this crate. You can name it whatever you want, since you're loading it directly from a file and not from the registry...so you can do `bulker load myspace/mycrate -f /path/to/file.yaml`.
+
+Once you've loaded a crate, if you type `bulker list` you should see the `demo` crate available for activation. But first, let's point out the `-b` argument, which you can pass to `bulker load`. By default, all `bulker load` does is create a folder of executables. *It does not actually pull or build any images*. Docker will automatically pull these by default as soon as you use them, which is nice, but you might rather just grab them all now instead of waiting for that. In this case, just pass `-b` to your `bulker load` command:
 
 ```console
 bulker load demo -b
@@ -63,7 +73,13 @@ Now, bulker will instruct docker (or singularity) to pull all the images require
 
 ## Running commands using bulker crates
 
-Once you have loaded a crate, all it means is there's a folder somewhere on your computer with a bunch of executables. You can use it like that if you like, but it simplifies things if you add these commands to your `PATH`. Bulker provides two ways to do this conveniently, depending on your use case: `bulker activate`, and `bulker run`.
+Once you have loaded a crate, all it means is there's a folder somewhere on your computer with a bunch of executables. You can use it like that if you like, by just running these commands directly. For example, the demo crate by default will create the following path: '$HOME/bulker_crates/bulker/demo/default/cowsay'. You can execute this by including the full path:
+
+```
+$HOME/bulker_crates/bulker/demo/default/cowsay boo
+```
+
+This example demonstrates how simple and flexible bulker is under the hood. But using commands like this is cumbersome; it simplifies things if you add these commands to your `PATH`. Bulker provides two ways to do this conveniently, depending on your use case: `bulker activate`, and `bulker run`.
 
 - *activate*. This will add all commands from a given crate to your PATH and give you a terminal where you can use them. You want to use activate if you want to manage crates like namespaces that you can turn on or off. This is useful for controlling which software versions are used for which tasks, because the manifest controls the versions of software included in a crate.
 
