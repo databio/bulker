@@ -87,7 +87,7 @@ def build_argparser():
             "-e", "--engine", choices={"docker", "singularity", }, default=None,
             help="Choose container engine. Default: 'guess'")
 
-    for cmd in ["run", "activate"]:
+    for cmd in ["run", "activate", "load"]:
         sps[cmd].add_argument(
             "crate_registry_paths", metavar="crate-registry-paths", type=str,
             help="One or more comma-separated registry path strings"
@@ -97,12 +97,9 @@ def build_argparser():
             "-s", "--strict", action='store_true', default=False,
             help="Use strict environment (purges PATH of other commands)?")
 
-    # Load has the same arg but a different help msg here because it can also
-    # accept a remote url or local filepath
     sps["load"].add_argument(
-            "crate_registry_paths", metavar="crate-registry-paths", type=str,
-            help="One or more registry path strings that identify crates"
-            " (e.g. bulker/demo:1.0.0). Can also be a remote URL or path to local file.")    
+            "-f", "--manifest",
+            help="File path to manifest. Can be a remote URL or local file.")
 
     sps["load"].add_argument(
             "-p", "--path",
@@ -205,6 +202,7 @@ def bulker_init(config_path, template_config_path, container_engine=None):
             if is_command_callable(engine):
                 _LOGGER.info("Guessing container engine is {}.".format(engine))
                 container_engine = engine
+                break  # it's a priority list, stop at the first found engine
 
     if config_path and not os.path.exists(config_path):
         # dcc.write(config_path)
@@ -229,31 +227,37 @@ def bulker_init(config_path, template_config_path, container_engine=None):
         _LOGGER.warning("Can't initialize, file exists: {} ".format(config_path))
 
 
-def bulker_load(manifest, cratevars, bulker_config, jinja2_template, crate_path=None, build=False):
+def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, build=False):
     manifest_name = cratevars['crate']
     # We store them in folder: namespace/crate/version
     if not crate_path:
-        crate_path = os.path.join(bulker_config.bulker.default_crate_folder,
+        crate_path = os.path.join(bcfg.bulker.default_crate_folder,
                                   cratevars['namespace'],
                                   manifest_name,
                                   cratevars['tag'])
     _LOGGER.debug("Crate path: {}".format(crate_path))
     _LOGGER.debug("cratevars: {}".format(cratevars))
     # Update the config file
-    if not bulker_config.bulker.crates:
-        bulker_config.bulker.crates = {}
-    if not hasattr(bulker_config.bulker.crates, cratevars['namespace']):
-        bulker_config.bulker.crates[cratevars['namespace']] = {}
-    if not hasattr(bulker_config.bulker.crates[cratevars['namespace']], cratevars['crate']):
-        bulker_config.bulker.crates[cratevars['namespace']][cratevars['crate']] = {}
-    if hasattr(bulker_config.bulker.crates[cratevars['namespace']][cratevars['crate']], cratevars['tag']):
-        _LOGGER.debug(bulker_config.bulker.crates[cratevars['namespace']][cratevars['crate']].to_dict())
+    if not bcfg.bulker.crates:
+        bcfg.bulker.crates = {}
+    if not hasattr(bcfg.bulker.crates, cratevars['namespace']):
+        bcfg.bulker.crates[cratevars['namespace']] = yacman.YacAttMap({})
+    if not hasattr(bcfg.bulker.crates[cratevars['namespace']], cratevars['crate']):
+        bcfg.bulker.crates[cratevars['namespace']][cratevars['crate']] = yacman.YacAttMap({})
+    if hasattr(bcfg.bulker.crates[cratevars['namespace']][cratevars['crate']], cratevars['tag']):
+        _LOGGER.debug(bcfg.bulker.crates[cratevars['namespace']][cratevars['crate']].to_dict())
         if not query_yes_no("That manifest has already been loaded. Overwrite?"):
             return
         else:
-            bulker_config.bulker.crates[cratevars['namespace']][cratevars['crate']][str(cratevars['tag'])] = crate_path
+            bcfg.bulker.crates[cratevars['namespace']][cratevars['crate']][str(cratevars['tag'])] = crate_path
             _LOGGER.warning("Removing all executables in: {}".format(crate_path))
-            shutil.rmtree(crate_path)
+            try:
+                shutil.rmtree(crate_path)
+            except FileNotFoundError:
+                _LOGGER.error("Not found, crate moved. Remove it manually.")
+    else:
+        bcfg.bulker.crates[cratevars['namespace']][cratevars['crate']][str(cratevars['tag'])] = crate_path
+
 
     # Now make the crate
     os.makedirs(crate_path, exist_ok=True)
@@ -261,7 +265,7 @@ def bulker_load(manifest, cratevars, bulker_config, jinja2_template, crate_path=
     for pkg in manifest.manifest.commands:
         _LOGGER.debug(pkg)
         pkg = yacman.YacAttMap(pkg)  # (otherwise it's just a dict)
-        pkg.update(bulker_config.bulker)
+        pkg.update(bcfg.bulker)
         if "singularity_image_folder" in pkg:
             pkg["singularity_image"] = os.path.basename(pkg["docker_image"])
             pkg["namespace"] = os.path.dirname(pkg["docker_image"])
@@ -287,7 +291,7 @@ def bulker_load(manifest, cratevars, bulker_config, jinja2_template, crate_path=
     _LOGGER.info("Commands available: {}".format(", ".join(cmdlist)))
 
 
-    bulker_config.write()
+    bcfg.write()
 
 def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
     # activating is as simple as adding a crate folder to the PATH env var.
@@ -307,8 +311,6 @@ def get_local_path(bulker_config, cratevars):
     :param YacAttMap bulker_config: bulker config object
     :return str: path to requested crate folder
     """
-    if not cratevars["tag"]:
-        cratevars["tag"] = "default"
     _LOGGER.debug(cratevars)
     _LOGGER.debug(bulker_config.bulker.crates[cratevars["namespace"]][cratevars["crate"]].to_dict())
 
@@ -347,7 +349,7 @@ def bulker_run(bulker_config, cratelist, command, strict=False):
     subprocess.call(merged_command, shell=True)
 
 
-def load_remote_registry_path(bulker_config, registry_path):
+def load_remote_registry_path(bulker_config, registry_path, filepath=None):
     cratevars = parse_registry_path(registry_path)
     if cratevars:
         # assemble the query string
@@ -365,30 +367,31 @@ def load_remote_registry_path(bulker_config, registry_path):
         # Until we have an API:
         query = query + ".yaml"
 
-        crate_url = os.path.join(base_url, query)
-        registry_path = crate_url
+        if not filepath:
+            filepath = os.path.join(base_url, query)
+    else: 
+        _LOGGER.error("Unable to parse registry path: {}".format(registry_path))
+        sys.exit(1)
 
-    if is_url(registry_path):
-        _LOGGER.info("Got URL: {}".format(registry_path))
+    if is_url(filepath):
+        _LOGGER.info("Got URL: {}".format(filepath))
         import urllib.request
         try:
-            response = urllib.request.urlopen(registry_path)
+            response = urllib.request.urlopen(filepath)
         except urllib.error.HTTPError as e:
             if cratevars:
-                _LOGGER.error("The requested manifest '{}' is not found on the bulker server".format(
-                    registry_path))
+                _LOGGER.error("The requested remote manifest '{}' is not found.".format(
+                    filepath))
                 sys.exit(1)
             else:
                 raise e
         data = response.read()      # a `bytes` object
         text = data.decode('utf-8')
-        manifest = yacman.YacAttMap(yamldata=text)
+        manifest_lines = yacman.YacAttMap(yamldata=text)
     else:
-        manifest = yacman.YacAttMap(filepath=registry_path)
+        manifest_lines = yacman.YacAttMap(filepath=filepath)
 
-    return manifest, cratevars
-
-    
+    return manifest_lines, cratevars
 
 
 def main():
@@ -425,8 +428,10 @@ def main():
         # redirect the list from stdout if desired without the header as clutter
         _LOGGER.info("Available crates:")
         if bulker_config.bulker.crates:
-            for crate, path in bulker_config.bulker.crates.items():
-                print("{}: {}".format(crate, path))
+            for namespace, crates in bulker_config.bulker.crates.items():
+                for crate, tags in crates.items():
+                    for tag, path in tags.items():
+                        print("{}/{}:{} -- {}".format(namespace, crate, tag, path))
         else:
             _LOGGER.info("No crates available. Use 'bulker load' to load a crate.")
         sys.exit(1)
@@ -442,7 +447,6 @@ def main():
         except KeyError as e:
             parser.print_help(sys.stderr)
             _LOGGER.error("{} is not an available crate".format(args.crate_registry_paths))
-            print(e)
             sys.exit(1)
 
     if args.command == "run":
@@ -452,12 +456,13 @@ def main():
             bulker_run(bulker_config, cratelist, args.cmd, strict=args.strict)
         except KeyError as e:
             parser.print_help(sys.stderr)
-            print(e)
             _LOGGER.error("{} is not an available crate".format(args.crate_registry_paths))
             sys.exit(1)
 
     if args.command == "load":
-        manifest, cratevars = load_remote_registry_path(bulker_config, args.crate_registry_paths)
+        manifest, cratevars = load_remote_registry_path(bulker_config, 
+                                                        args.crate_registry_paths,
+                                                        args.manifest)
         exe_template_jinja = None
         build_template_jinja = None
         exe_template = os.path.join(TEMPLATE_FOLDER, bulker_config.bulker.executable_template)
