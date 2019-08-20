@@ -4,6 +4,7 @@ bulker:
   default_crate_folder: ${HOME}/bulker_crates
   singularity_image_folder: ${HOME}/simages
   container_engine: docker
+  default_namespace: bulker
   executable_template: null
   build_template: null
   crates: null
