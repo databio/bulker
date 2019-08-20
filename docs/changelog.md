@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.0] -- 2019-08-20
+- Major changes to the registry path treatment to accommodate tags
+- Local/remote manifests are now loaded with `-f`
+- Full registry paths are now required for load, run, and activate
+- Config format includes a new hierarchical level for crate tags
+
 ## [0.1.2] -- 2019-08-14
 - Fix a bug with compatibility of load from registry for older pythons (2.7/3.4).
 
