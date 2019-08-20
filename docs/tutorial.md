@@ -6,9 +6,9 @@ I assume you've already gone through the [install and configure](install.md) ins
 
 Let's start with a few terms:
 
-1. **crate**. A collection of containerized executables. A crate is loaded from a manifest. A crate is analogous to a docker image (but it contains multiple images).
+1. **crate**. A collection of containerized executables. A crate is loaded from a manifest. A crate is analogous to a docker image (but it points to *multiple* images).
 
-2. **manifest**. A list of commands to be included in a crate. A manifest is analogous to a Dockerfile.
+2. **manifest**. A manifest defines a crate. It is a list of commands and images to be included in the crate. A manifest is analogous to a Dockerfile.
 
 3. **load**. Loading a manifest will create a folder with executables for each command in the manifest. The folder is named after the manifest. Loading a manifest is analogous to building or pulling an image.
 
@@ -45,11 +45,11 @@ There are a few ways to load a manifest. This one is easy because it's already i
 bulker load demo
 ```
 
-You could also load any manifest, either local or remote, by just pointing to the yaml file:
+You could also load any manifest, either local or remote, by just pointing to the yaml file and using the `-f` argument to point to the manifest file (aka cratefile):
 
 ```console
-bulker load http://big.databio.org/bulker/bulker/demo.yaml
-bulker load local/path/to/demo.yaml
+bulker load demo -f http://big.databio.org/bulker/bulker/demo.yaml
+bulker load demo -f local/path/to/demo.yaml
 ```
 
 Now if you type `bulker list` you should see the `demo` crate available for activation. But first, let's point out the `-b` argument, which you can pass to `bulker load`. By default, all `bulker load` does is create a folder of executables. *It does not actually pull or build any images*. Docker will automatically pull these by default as soon as you use them, which is nice, but you might rather just grab them all now instead of waiting for that. In this case, just pass `-b` to your `bulker load` command:

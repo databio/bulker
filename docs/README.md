@@ -41,7 +41,7 @@ pip install --user bulker
 A bulker crate is a collection of executables that run inside containers. To load a bulker crate, you need a manifest, which lists the commands and images included in this crate. Use the [cowsay fortune demo](http://big.databio.org/bulker/bulker/demo.yaml) for example:
 
 ```console
-bulker load bulker/demo
+bulker load demo
 ```
 
 Loading this crate will give you drop-in replacement command-line executables for any commands in the manifest.
@@ -83,10 +83,10 @@ Response:
 You can also just run commands without activating a crate:
 
 ```console
-bulker run CRATE cowsay Hello world!
+bulker run demo cowsay Hello world!
 ```
 
-Where CRATE is the bulker crate you wish to execute the command in. For more details, check out the [tutorial](tutorial.md).
+You can use a different crate with `bulker run CRATE command --args` Where CRATE is the bulker crate you wish to execute the command in. For more details, check out the [tutorial](tutorial.md).
 
 
 <!-- Then, you produce collections of containers, which we call `crates` (really just a list of containers). Bulker automatically builds executable scripts so that you can run these tools on the command line like drop-in replacements for any command-line tool -- except now, they're running in a container and you didn't have to install them. Because the environment-specific settings are decoupled from the container manifest, the manifest is portable, making it dead easy to distribute modular, containerized software. -->
