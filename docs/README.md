@@ -1,8 +1,6 @@
 # <img src="img/bulker_logo.svg" class="img-header"> containers made easy
 
-[![PEP compatible](https://pepkit.github.io/img/PEP-compatible-green.svg)](http://pepkit.github.io)
-
-[![Build Status](https://travis-ci.org/databio/bulker.svg?branch=master)](https://travis-ci.org/databio/bulker)
+[![PEP compatible](https://pepkit.github.io/img/PEP-compatible-green.svg)](http://pepkit.github.io) [![Build Status](https://travis-ci.org/databio/bulker.svg?branch=master)](https://travis-ci.org/databio/bulker)
 
 ## What is bulker?
 

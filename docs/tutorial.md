@@ -78,7 +78,7 @@ Once you have loaded a crate, all it means is there's a folder somewhere on your
 $HOME/bulker_crates/bulker/demo/default/cowsay boo
 ```
 
-This example demonstrates how simple and flexible bulker is under the hood. But using commands like this is cumbersome; it simplifies things if you add these commands to your `PATH`. Bulker provides two ways to do this conveniently, depending on your use case: `bulker activate`, and `bulker run`.
+This example demonstrates how simple and flexible bulker is under the hood. But using commands like this is cumbersome. It simplifies things if you add these commands to your `PATH`, plus, then you can more easily use *sets* of commands as a kind of controlled computational environment. Bulker provides two ways to do this conveniently, depending on your use case: `bulker activate`, and `bulker run`.
 
 - *activate*. This will add all commands from a given crate to your PATH and give you a terminal where you can use them. You want to use activate if you want to manage crates like namespaces that you can turn on or off. This is useful for controlling which software versions are used for which tasks, because the manifest controls the versions of software included in a crate.
 
