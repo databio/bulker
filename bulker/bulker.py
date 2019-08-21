@@ -71,8 +71,8 @@ def build_argparser():
     subparser_messages = {
         "init": "Initialize a new bulker config file",
         "list": "List available bulker crates",
-        "load": "Create a new bulker crate from a container manifest",
-        "activate": "Activate a bulker crate by adding it to your PATH",
+        "load": "Load a crate from a manifest",
+        "activate": "Activate a crate by adding it to PATH",
         "run": "Run a command in a crate"
     }
 
