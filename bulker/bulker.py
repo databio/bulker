@@ -149,7 +149,7 @@ def parse_registry_paths(paths, default_namespace="bulker"):
         paths = paths.split(",")
     elif isinstance(paths, str):
         paths = [paths]
-
+    _LOGGER.debug("Split registry paths: {}".format(paths))
     return [parse_registry_path(p, default_namespace) for p in paths]
 
 def _is_writable(folder, check_exist=False, create=False):
@@ -446,7 +446,7 @@ def main():
             bulker_activate(bulker_config, cratelist, echo=args.echo, strict=args.strict)
         except KeyError as e:
             parser.print_help(sys.stderr)
-            _LOGGER.error("{} is not an available crate".format(args.crate_registry_paths))
+            _LOGGER.error("{} is not an available crate".format(e))
             sys.exit(1)
 
     if args.command == "run":
@@ -456,7 +456,7 @@ def main():
             bulker_run(bulker_config, cratelist, args.cmd, strict=args.strict)
         except KeyError as e:
             parser.print_help(sys.stderr)
-            _LOGGER.error("{} is not an available crate".format(args.crate_registry_paths))
+            _LOGGER.error("{} is not an available crate".format(e))
             sys.exit(1)
 
     if args.command == "load":
