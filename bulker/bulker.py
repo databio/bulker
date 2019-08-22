@@ -8,15 +8,17 @@ import logmuse
 import os
 import re
 import sys
+import yacman
 import shutil
 
 # from distutils.dir_util import copy_tree
+from distutils.spawn import find_executable
 from shutil import copyfile
 
 from ubiquerg import is_url, is_command_callable, parse_registry_path as prp, \
                     query_yes_no
 
-import yacman
+
 from collections import OrderedDict
 from . import __version__
 
@@ -33,6 +35,10 @@ DOCKER_EXE_TEMPLATE = os.path.join(TEMPLATE_FOLDER, "docker_executable.jinja2")
 DOCKER_BUILD_TEMPLATE = os.path.join(TEMPLATE_FOLDER, "docker_build.jinja2")
 SINGULARITY_EXE_TEMPLATE =  os.path.join(TEMPLATE_FOLDER, "singularity_executable.jinja2")
 SINGULARITY_BUILD_TEMPLATE =  os.path.join(TEMPLATE_FOLDER, "singularity_build.jinja2")
+
+LOCAL_EXE_TEMPLATE = """
+#!/bin/sh\n\n{cmd} "$@"
+"""
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -262,30 +268,44 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, bui
     # Now make the crate
     os.makedirs(crate_path, exist_ok=True)
     cmdlist = []
-    for pkg in manifest.manifest.commands:
-        _LOGGER.debug(pkg)
-        pkg = yacman.YacAttMap(pkg)  # (otherwise it's just a dict)
-        pkg.update(bcfg.bulker)
-        if "singularity_image_folder" in pkg:
-            pkg["singularity_image"] = os.path.basename(pkg["docker_image"])
-            pkg["namespace"] = os.path.dirname(pkg["docker_image"])
-            pkg["singularity_fullpath"] = os.path.join(pkg["singularity_image_folder"], pkg["namespace"], pkg["singularity_image"])
-            os.makedirs(os.path.dirname(pkg["singularity_fullpath"]), exist_ok=True)
-        command = pkg["command"]
-        path = os.path.join(crate_path, command)
-        _LOGGER.debug("Writing {cmd}".format(cmd=path))
-        cmdlist.append(command)
-        with open(path, "w") as fh:
-            fh.write(jinja2_template.render(pkg=pkg))
-            os.chmod(path, 0o755)
-        if build:
-            buildscript = build.render(pkg=pkg)
-            x = os.system(buildscript)
-            if x != 0:
-                _LOGGER.error("------ Error building. Build script used: ------")
-                _LOGGER.error(buildscript)
-                _LOGGER.error("------------------------------------------------")
-            _LOGGER.info("Container available at: {cmd}".format(cmd=pkg["singularity_fullpath"]))
+    if hasattr(manifest.manifest, "commands") and manifest.manifest.commands:
+        for pkg in manifest.manifest.commands:
+            _LOGGER.debug(pkg)
+            pkg = yacman.YacAttMap(pkg)  # (otherwise it's just a dict)
+            pkg.update(bcfg.bulker)
+            if "singularity_image_folder" in pkg:
+                pkg["singularity_image"] = os.path.basename(pkg["docker_image"])
+                pkg["namespace"] = os.path.dirname(pkg["docker_image"])
+                pkg["singularity_fullpath"] = os.path.join(pkg["singularity_image_folder"], pkg["namespace"], pkg["singularity_image"])
+                os.makedirs(os.path.dirname(pkg["singularity_fullpath"]), exist_ok=True)
+            command = pkg["command"]
+            path = os.path.join(crate_path, command)
+            _LOGGER.debug("Writing {cmd}".format(cmd=path))
+            cmdlist.append(command)
+            with open(path, "w") as fh:
+                fh.write(jinja2_template.render(pkg=pkg))
+                os.chmod(path, 0o755)
+            if build:
+                buildscript = build.render(pkg=pkg)
+                x = os.system(buildscript)
+                if x != 0:
+                    _LOGGER.error("------ Error building. Build script used: ------")
+                    _LOGGER.error(buildscript)
+                    _LOGGER.error("------------------------------------------------")
+                _LOGGER.info("Container available at: {cmd}".format(cmd=pkg["singularity_fullpath"]))
+
+    # host commands
+    if hasattr(manifest.manifest, "host_commands") and manifest.manifest.host_commands:
+        _LOGGER.info("Populating host commands")
+        for cmd in manifest.manifest.host_commands:
+            _LOGGER.debug(cmd)
+            local_exe = find_executable(cmd)
+            populated_template = LOCAL_EXE_TEMPLATE.format(cmd=local_exe)
+            path = os.path.join(crate_path, cmd)
+            cmdlist.append(cmd)
+            with open(path, "w") as fh:
+                fh.write(populated_template)
+                os.chmod(path, 0o755)
 
     _LOGGER.info("Loading manifest: '{m}'. Activate with 'bulker activate {m}'.".format(m=manifest_name))
     _LOGGER.info("Commands available: {}".format(", ".join(cmdlist)))
