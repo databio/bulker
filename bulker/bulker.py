@@ -350,7 +350,7 @@ def get_new_PATH(bulker_config, cratelist, strict=False):
     if strict:
         newpath = cratepaths
     else:
-        newpath = cratepaths + os.pathsep + os.environ["PATH"]
+        newpath = cratepaths + os.environ["PATH"]
 
     return newpath
 
