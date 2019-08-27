@@ -114,8 +114,12 @@ def build_argparser():
     sps["load"].add_argument(
             "-b", "--build", action='store_true', default=False,
             help="Build/pull the actual containers, in addition to the"
-            "executables. Default: False")    
+            "executables. Default: False")
     
+    sps["load"].add_argument(
+            "-r", "--force", action='store_true', default=False,
+            help="Force overwrite? Default: False")
+
     sps["run"].add_argument(
             "cmd", metavar="command", nargs=argparse.REMAINDER, 
             help="Command to run")
@@ -233,7 +237,7 @@ def bulker_init(config_path, template_config_path, container_engine=None):
         _LOGGER.warning("Can't initialize, file exists: {} ".format(config_path))
 
 
-def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, build=False):
+def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, build=False, force=False):
     manifest_name = cratevars['crate']
     # We store them in folder: namespace/crate/version
     if not crate_path:
@@ -252,7 +256,7 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, bui
         bcfg.bulker.crates[cratevars['namespace']][cratevars['crate']] = yacman.YacAttMap({})
     if hasattr(bcfg.bulker.crates[cratevars['namespace']][cratevars['crate']], cratevars['tag']):
         _LOGGER.debug(bcfg.bulker.crates[cratevars['namespace']][cratevars['crate']].to_dict())
-        if not query_yes_no("That manifest has already been loaded. Overwrite?"):
+        if not (force or query_yes_no("That manifest has already been loaded. Overwrite?")):
             return
         else:
             bcfg.bulker.crates[cratevars['namespace']][cratevars['crate']][str(cratevars['tag'])] = crate_path
@@ -503,7 +507,8 @@ def main():
 
         bulker_load(manifest, cratevars, bulker_config, exe_template_jinja, 
                     crate_path=args.path,
-                    build=build_template_jinja)
+                    build=build_template_jinja,
+                    force=args.force)
 
 
 if __name__ == '__main__':

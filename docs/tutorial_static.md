@@ -1,18 +1,3 @@
-# Tutorial
-
-I assume you've already gone through the [install and configure](install.md) instructions.
-
-## Terminology
-
-Let's start with a few terms:
-
-1. **crate**. A collection of containerized executables. A crate is analogous to a docker image (but it provides *multiple* commands by pointing to *multiple* images).
-
-2. **manifest**. A manifest defines a crate. It is a list of commands and images to be included in the crate. A manifest is analogous to a Dockerfile. It could be thought of as a *Cratefile*.
-
-3. **load**. Loading a manifest will create a local folder with executables for each command in the manifest. Loading a manifest is analogous to building or pulling an image.
-
-4. **activate**. Activating a crate is what allows you to run the commands in a crate. Activating is analogous to starting a container. Any loaded crates are available to activate. Activating a crate does nothing more than prepend the crate folder to your `PATH` variable.
 
 ## Loading crates
 
@@ -50,7 +35,7 @@ bulker load demo
 
 Doing `bulker load bulker/demo:default` would do the same thing. That's how you load any crate, from any namespace, from the registry.
 
-### Loading creates from a file
+### Loading crates from a file
 
 You can also load any manifest by pointing to the yaml file with the `-f` argument:
 
