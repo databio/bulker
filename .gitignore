@@ -71,9 +71,9 @@ open_pipelines/
 *RESERVE*
 
 # Build-related stuff
-build/
 dist/
 bulker.egg-info/
+
 
 #ipynm checkpoints
 *ipynb_checkpoints*
