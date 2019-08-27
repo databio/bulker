@@ -1,0 +1,15 @@
+bulker:
+  volumes: ['/tmp']
+  envvars: ['DISPLAY']
+  default_crate_folder: ${HOME}/bulker_crates
+  singularity_image_folder: ${HOME}/simages
+  container_engine: docker
+  default_namespace: bulker
+  executable_template: /home/nsheff/.local/lib/python3.5/site-packages/bulker/templates/docker_executable.jinja2
+  build_template: /home/nsheff/.local/lib/python3.5/site-packages/bulker/templates/docker_build.jinja2
+  crates:
+    bulker:
+      demo:
+        default: /home/nsheff/bulker_crates/bulker/demo/default
+      pi:
+        default: /home/nsheff/bulker_crates/bulker/pi/default

@@ -1,5 +1,7 @@
 import os
 import subprocess
+import pytest
+
 import yacman
 from bulker.bulker import DEFAULT_CONFIG_FILEPATH
 
@@ -29,4 +31,20 @@ def test_yacman():
 
     # manifest = yacman.YacAttMap(filepath="/home/ns5bc/code/bulker/demo/demo_manifest.yaml")
     # bc
-     
+
+yaml_str = """\
+---
+one: 1
+2: two
+"""
+
+def test_float_idx():
+
+    data = yacman.YacAttMap(yamldata=yaml_str)
+    # We should be able to access this by string, not by int index.
+    assert(data['2'] == "two")
+    with pytest.raises(KeyError):
+        data[2]
+
+# import inspect
+# inspect.getsourcelines(yacman.yaml.SafeLoader.construct_pairs)

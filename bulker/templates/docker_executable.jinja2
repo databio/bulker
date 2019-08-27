@@ -1,6 +1,6 @@
 #!/bin/sh
 
-docker run --rm \{% if pkg.dockerargs %}
+docker run --rm --init \{% if pkg.dockerargs %}
   {{ pkg.dockerargs }} \{% endif %}
   --user=$(id -u):$(id -g) \
   --network="host" \{% for envvar in pkg.envvars %}

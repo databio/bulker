@@ -10,7 +10,7 @@ To do this, just add this to your `.bashrc`:
 
 ```shell
 bulker-activate() {
-  eval "$(bulker activate $1 -e)"
+  eval "$(bulker activate -e $@)"
 }
 
 ```

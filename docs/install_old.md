@@ -24,7 +24,7 @@ bulker init -c $BULKERCFG
 
 ### Docker vs singularity 
 
-This `init` command will create a default config file. Bulker wraps any container engine (it currently knows how to use either docker or singularity. By default, the `init` command will try to guess if your system is set up to use docker or singularity. You can use `-e ENGINE` to force one or the other (where `ENGINE` is `singularity` or `docker`). 
+This `init` command will create a default config file. The `init` command will guess if your system is set up to use docker or singularity. You can use `-e ENGINE` to force one or the other (where `ENGINE` is `singularity` or `docker`).
 
 The `bulker activate`, `load`, and `list` commands require knowing where this genome config file is. You can pass it on the command line all the time (using the -c parameter), but this gets old. An alternative is to set up the $BULKERCFG environment variable. Bulker will automatically use the config file in this environmental variable if it exists. Add this line to your `.bashrc` or `.profile` if you want it to persist for future command-line sessions:
 
@@ -39,20 +39,22 @@ export BULKERCFG=/path/to/bulker_config.yaml
 The bulker config file is where you put the container settings that will determine how your executables behave. Take a look at the config file to see what you can modify:
 
 ```console
-$> cat $BULKERCFG
+cat $BULKERCFG
 ```
+
 Returns:
+
 ```yaml
 bulker:
-  volumes: ['/tmp', '$HOME']
+  volumes: ['/tmp']
   envvars: ['DISPLAY']
   default_crate_folder: ${HOME}/bulker_crates
+  singularity_image_folder: ${HOME}/simages
   container_engine: docker
+  default_namespace: bulker
   executable_template: null
-  build_template: null  
-  crates:
-    base: ${HOME}/bulker_crates/base
-
+  build_template: null
+  crates: null
 ```
 
 Here, you can add any file systems under `volumes` that you need mounted on your containers. You should add any environment variables that your containers may need under `envvars`. The `default_crate_folder` will determine where the crates (folders with executables) are saved. The `crates` section is maintained by bulker -- it will add a new entry into this section whenever you run `bulker load`, and this is what it reads when you request `bulker list` or `bulker activate`.
