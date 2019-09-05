@@ -11,7 +11,7 @@ import sys
 import yacman
 import shutil
 
-# from distutils.dir_util import copy_tree
+from distutils.dir_util import copy_tree
 from distutils.spawn import find_executable
 from shutil import copyfile
 
@@ -22,19 +22,20 @@ from ubiquerg import is_url, is_command_callable, parse_registry_path as prp, \
 from collections import OrderedDict
 from . import __version__
 
+TEMPLATE_SUBDIR = "templates"
 DEFAULT_CONFIG_FILEPATH =  os.path.join(
         os.path.dirname(__file__),
-        "templates",
+        TEMPLATE_SUBDIR,
         "bulker_config.yaml")
 
-TEMPLATE_FOLDER = os.path.join(
+TEMPLATE_ABSPATH = os.path.join(
         os.path.dirname(__file__),
-        "templates")
+        TEMPLATE_SUBDIR)
 
-DOCKER_EXE_TEMPLATE = os.path.join(TEMPLATE_FOLDER, "docker_executable.jinja2")
-DOCKER_BUILD_TEMPLATE = os.path.join(TEMPLATE_FOLDER, "docker_build.jinja2")
-SINGULARITY_EXE_TEMPLATE =  os.path.join(TEMPLATE_FOLDER, "singularity_executable.jinja2")
-SINGULARITY_BUILD_TEMPLATE =  os.path.join(TEMPLATE_FOLDER, "singularity_build.jinja2")
+DOCKER_EXE_TEMPLATE = "docker_executable.jinja2"
+DOCKER_BUILD_TEMPLATE =  "docker_build.jinja2"
+SINGULARITY_EXE_TEMPLATE =  "singularity_executable.jinja2"
+SINGULARITY_BUILD_TEMPLATE =  "singularity_build.jinja2"
 
 LOCAL_EXE_TEMPLATE = """
 #!/bin/sh\n\n{cmd} "$@"
@@ -214,21 +215,22 @@ def bulker_init(config_path, template_config_path, container_engine=None):
                 container_engine = engine
                 break  # it's a priority list, stop at the first found engine
 
-    if config_path and not os.path.exists(config_path):
+    if config_path and not (os.path.exists(config_path) and not query_yes_no("Exists. Overwrite?")):
         # dcc.write(config_path)
         # Init should *also* write the templates.
         dest_folder = os.path.dirname(config_path)
-        # copy_tree(os.path.dirname(template_config_path), dest_folder)
-        new_template = os.path.join(os.path.dirname(config_path), os.path.basename(template_config_path))
+        templates_subdir = os.path.join(dest_folder, TEMPLATE_SUBDIR)
+        copy_tree(os.path.dirname(template_config_path), templates_subdir)
+        new_template = os.path.join(dest_folder, os.path.basename(template_config_path))
         bulker_config = yacman.YacAttMap(filepath=template_config_path)
         _LOGGER.debug("Engine used: {}".format(container_engine))
         bulker_config.bulker.container_engine = container_engine
         if bulker_config.bulker.container_engine == "docker":
-            bulker_config.bulker.executable_template = DOCKER_EXE_TEMPLATE
-            bulker_config.bulker.build_template = DOCKER_BUILD_TEMPLATE
+            bulker_config.bulker.executable_template = os.path.join(templates_subdir, DOCKER_EXE_TEMPLATE)
+            bulker_config.bulker.build_template = os.path.join(templates_subdir, DOCKER_BUILD_TEMPLATE)
         elif bulker_config.bulker.container_engine == "singularity":
-            bulker_config.bulker.executable_template = SINGULARITY_EXE_TEMPLATE
-            bulker_config.bulker.build_template = SINGULARITY_BUILD_TEMPLATE        
+            bulker_config.bulker.executable_template = os.path.join(templates_subdir, SINGULARITY_EXE_TEMPLATE)
+            bulker_config.bulker.build_template = os.path.join(templates_subdir, SINGULARITY_BUILD_TEMPLATE)
         bulker_config.write(config_path)
         # copyfile(template_config_path, new_template)
         # os.rename(new_template, config_path)
@@ -245,6 +247,9 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, bui
                                   cratevars['namespace'],
                                   manifest_name,
                                   cratevars['tag'])
+    if not os.path.isabs(crate_path):
+        crate_path = os.path.join(os.path.dirname(bcfg.filepath), crate_path)
+
     _LOGGER.debug("Crate path: {}".format(crate_path))
     _LOGGER.debug("cratevars: {}".format(cratevars))
     # Update the config file
@@ -418,6 +423,30 @@ def load_remote_registry_path(bulker_config, registry_path, filepath=None):
     return manifest_lines, cratevars
 
 
+def mkabs(path, reldir=None):
+    """
+    Makes sure a path is absolute; if not already absolute, it's made absolute
+    relative to a given directory. Also expands ~ and environment variables for
+    kicks.
+
+    :param str path: Path to make absolute
+    :param str reldir: Relative directory to make path absolute from if it's
+        not already absolute
+
+    :return str: Absolute path
+    """
+    def xpand(path):
+        return os.path.expandvars(os.path.expanduser(path))
+
+    if os.path.isabs(xpand(path)):
+        return xpand(path)
+
+    if not reldir:
+        return os.path.abspath(xpand(path))
+
+    return os.path.join(xpand(reldir), xpand(path))
+
+
 def main():
     """ Primary workflow """
 
@@ -489,15 +518,18 @@ def main():
                                                         args.manifest)
         exe_template_jinja = None
         build_template_jinja = None
-        exe_template = os.path.join(TEMPLATE_FOLDER, bulker_config.bulker.executable_template)
-        build_template = os.path.join(TEMPLATE_FOLDER, bulker_config.bulker.build_template)
+
+        exe_template = mkabs(bulker_config.bulker.executable_template, os.path.dirname(bulker_config._file_path))
+        build_template = mkabs(bulker_config.bulker.build_template, os.path.dirname(bulker_config._file_path))
+
+
+        _LOGGER.info("Executable template: {}".format(exe_template))
         assert(os.path.exists(exe_template))
         with open(exe_template, 'r') as f:
         # with open(DOCKER_TEMPLATE, 'r') as f:
             contents = f.read()
             exe_template_jinja = jinja2.Template(contents)
 
-        _LOGGER.info("Executable template: {}".format(exe_template))
 
         if args.build:
             _LOGGER.info("Building images with template: {}".format(build_template))
