@@ -37,6 +37,8 @@ DOCKER_BUILD_TEMPLATE =  "docker_build.jinja2"
 SINGULARITY_EXE_TEMPLATE =  "singularity_executable.jinja2"
 SINGULARITY_BUILD_TEMPLATE =  "singularity_build.jinja2"
 
+DEFAULT_BASE_URL = "http://hub.bulker.io"
+
 LOCAL_EXE_TEMPLATE = """
 #!/bin/sh\n\n{cmd} "$@"
 """
@@ -396,8 +398,8 @@ def load_remote_registry_path(bulker_config, registry_path, filepath=None):
         if 'registry_url' in bulker_config.bulker:
             base_url = bulker_config.bulker.registry_url
         else:
-            # base_url = "http://bulker.io"
-            base_url = "http://big.databio.org/bulker/"
+            # base_url = "http://big.databio.org/bulker/"
+            base_url = DEFAULT_BASE_URL
         query = cratevars["crate"]
         if cratevars["tag"] != "default":
             query = query + "_" + cratevars["tag"]
@@ -417,11 +419,13 @@ def load_remote_registry_path(bulker_config, registry_path, filepath=None):
         _LOGGER.info("Got URL: {}".format(filepath))
         try: #python3
             from urllib.request import urlopen
+            from urllib.error import HTTPError
         except: #python2
-            from urllib2 import urlopen        
+            from urllib2 import urlopen       
+            from urllib2 import URLError as HTTPError
         try:
             response = urlopen(filepath)
-        except urllib.error.HTTPError as e:
+        except HTTPError as e:
             if cratevars:
                 _LOGGER.error("The requested remote manifest '{}' is not found.".format(
                     filepath))
