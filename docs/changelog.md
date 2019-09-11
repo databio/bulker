@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.2.1] -- 2019-09-11
+- Fix problem with python2 compatibility
+
 ## [0.2.0] -- 2019-08-20
 - Major changes to the registry path treatment to accommodate tags
 - Local/remote manifests are now loaded with `-f`
