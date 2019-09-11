@@ -132,6 +132,7 @@ def build_argparser():
     return parser
 
 
+
 def select_bulker_config(filepath):
     bulkercfg = yacman.select_config(
         filepath,
@@ -238,6 +239,16 @@ def bulker_init(config_path, template_config_path, container_engine=None):
     else:
         _LOGGER.warning("Can't initialize, file exists: {} ".format(config_path))
 
+def mkdir(path, exist_ok=True):
+    """ Replacement of os.makedirs for python 2/3 compatibility """
+    if os.path.exists(path):
+        if exist_ok:
+            pass
+        else:
+            raise IOError("Path exists: {}".format(path))
+    else:
+        os.makedirs(path)
+
 
 def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, build=False, force=False):
     manifest_name = cratevars['crate']
@@ -275,7 +286,7 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, bui
 
 
     # Now make the crate
-    os.makedirs(crate_path, exist_ok=True)
+    mkdir(crate_path, exist_ok=True)
     cmdlist = []
     if hasattr(manifest.manifest, "commands") and manifest.manifest.commands:
         for pkg in manifest.manifest.commands:
@@ -286,7 +297,7 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, bui
                 pkg["singularity_image"] = os.path.basename(pkg["docker_image"])
                 pkg["namespace"] = os.path.dirname(pkg["docker_image"])
                 pkg["singularity_fullpath"] = os.path.join(pkg["singularity_image_folder"], pkg["namespace"], pkg["singularity_image"])
-                os.makedirs(os.path.dirname(pkg["singularity_fullpath"]), exist_ok=True)
+                mkdir(os.path.dirname(pkg["singularity_fullpath"]), exist_ok=True)
             command = pkg["command"]
             path = os.path.join(crate_path, command)
             _LOGGER.debug("Writing {cmd}".format(cmd=path))
@@ -404,9 +415,12 @@ def load_remote_registry_path(bulker_config, registry_path, filepath=None):
 
     if is_url(filepath):
         _LOGGER.info("Got URL: {}".format(filepath))
-        import urllib.request
+        try: #python3
+            from urllib.request import urlopen
+        except: #python2
+            from urllib2 import urlopen        
         try:
-            response = urllib.request.urlopen(filepath)
+            response = urlopen(filepath)
         except urllib.error.HTTPError as e:
             if cratevars:
                 _LOGGER.error("The requested remote manifest '{}' is not found.".format(
