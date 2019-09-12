@@ -4,6 +4,8 @@ import pytest
 
 import yacman
 from bulker.bulker import DEFAULT_CONFIG_FILEPATH
+from bulker.bulker import bulker_init, bulker_load, load_remote_registry_path
+import shutil
 
 
 def test_yacman():
@@ -45,6 +47,29 @@ def test_float_idx():
     assert(data['2'] == "two")
     with pytest.raises(KeyError):
         data[2]
+
+
+
+def test_bulker_init():
+    try:
+        os.remove("test_bulker_init.yaml")
+        shutil.rmtree('templates')
+    except:
+        pass
+    bulker_init("test_bulker_init.yaml", DEFAULT_CONFIG_FILEPATH, "docker")
+    bulker_config = yacman.YacAttMap(filepath=DEFAULT_CONFIG_FILEPATH)
+    bulker_load
+
+    manifest, cratevars = load_remote_registry_path(bulker_config, 
+                                                     "demo",
+                                                     None)
+    try:
+        os.remove("test_bulker_init.yaml")
+        shutil.rmtree('templates')
+    except:
+        pass
+
+
 
 # import inspect
 # inspect.getsourcelines(yacman.yaml.SafeLoader.construct_pairs)
