@@ -5,6 +5,6 @@ bulker:
   singularity_image_folder: ${HOME}/simages
   container_engine: docker
   default_namespace: bulker
-  executable_template: null
-  build_template: null
+  executable_template: docker_executable.jinja2
+  build_template: docker_build.jinja2
   crates: null

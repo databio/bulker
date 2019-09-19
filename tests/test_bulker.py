@@ -5,6 +5,7 @@ import pytest
 import yacman
 from bulker.bulker import DEFAULT_CONFIG_FILEPATH
 from bulker.bulker import bulker_init, bulker_load, load_remote_registry_path
+from bulker.bulker import mkabs
 import shutil
 
 
@@ -58,7 +59,6 @@ def test_bulker_init():
         pass
     bulker_init("test_bulker_init.yaml", DEFAULT_CONFIG_FILEPATH, "docker")
     bulker_config = yacman.YacAttMap(filepath=DEFAULT_CONFIG_FILEPATH)
-    bulker_load
 
     manifest, cratevars = load_remote_registry_path(bulker_config, 
                                                      "demo",
@@ -69,6 +69,28 @@ def test_bulker_init():
     except:
         pass
 
+
+
+def test_nonconfig_load():
+    bulker_config = yacman.YacAttMap(filepath=DEFAULT_CONFIG_FILEPATH)
+    # The 'load' command will write the new crate to the config file;
+    # we don't want it to update the template config file, so make a dummy
+    # filepath that we'll delete later.
+    DUMMY_CFGFILEPATH = "bulker/templates/tmp.yaml"
+    bulker_config._file_path = DUMMY_CFGFILEPATH
+    manifest, cratevars = load_remote_registry_path(bulker_config, "demo", None)
+    exe_template = mkabs(bulker_config.bulker.executable_template, os.path.dirname(bulker_config._file_path))
+    import jinja2
+    with open(exe_template, 'r') as f:
+    # with open(DOCKER_TEMPLATE, 'r') as f:
+        contents = f.read()
+        exe_template_jinja = jinja2.Template(contents)
+    bulker_load(manifest, cratevars, bulker_config, exe_template_jinja, force=True)
+
+    try:
+        os.remove(DUMMY_CFGFILEPATH)
+    except:
+        pass
 
 
 # import inspect
