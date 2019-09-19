@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.2.2] -- 2019-09-19
+- Fixed a bug with using the built-in config file
+
 ## [0.2.1] -- 2019-09-12
 - Fix problem with python2 compatibility
 - Init now copies over templates, which are relative to the config file. This makes it easier to share a bulker configuration in a shared computing environment.
