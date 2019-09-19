@@ -25,7 +25,7 @@ manifest:
 
 That's it. If you want your manifest to specify specific versions of images, make sure you include the tags in your `docker_image` strings.
 
-For now, check out these examples at [big.databio.org/bulker](http://big.databio.org/bulker):
+For now, check out these examples at [hub.bulker.io](http://hub.bulker.io):
 
 Demos:
 
