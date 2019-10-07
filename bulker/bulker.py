@@ -491,7 +491,7 @@ def main():
 
     bulkercfg = select_bulker_config(args.config)
     _LOGGER.info("Bulker config: {}".format(bulkercfg))
-    bulker_config = yacman.YacAttMap(filepath=bulkercfg)
+    bulker_config = yacman.YacAttMap(filepath=bulkercfg, writable=True)
 
 
     if args.command == "list":
