@@ -261,7 +261,7 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, bui
                                   manifest_name,
                                   cratevars['tag'])
     if not os.path.isabs(crate_path):
-        crate_path = os.path.join(os.path.dirname(bcfg.filepath), crate_path)
+        crate_path = os.path.join(os.path.dirname(bcfg._file_path), crate_path)
 
     _LOGGER.debug("Crate path: {}".format(crate_path))
     _LOGGER.debug("cratevars: {}".format(cratevars))
