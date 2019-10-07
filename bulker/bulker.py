@@ -252,7 +252,8 @@ def mkdir(path, exist_ok=True):
         os.makedirs(path)
 
 
-def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, build=False, force=False):
+def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, 
+                build=False, force=False):
     manifest_name = cratevars['crate']
     # We store them in folder: namespace/crate/version
     if not crate_path:
@@ -329,7 +330,13 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, bui
                 fh.write(populated_template)
                 os.chmod(path, 0o755)
 
-    _LOGGER.info("Loading manifest: '{m}'. Activate with 'bulker activate {m}'.".format(m=manifest_name))
+    rp = "{namespace}/{crate}:{tag}".format(
+        namespace=cratevars['namespace'],
+        crate=cratevars['crate'],
+        tag=cratevars['tag'])
+
+    _LOGGER.info("Loading manifest: '{rp}'."
+                " Activate with 'bulker activate {rp}'.".format(rp=rp))
     _LOGGER.info("Commands available: {}".format(", ".join(cmdlist)))
 
 
