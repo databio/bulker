@@ -225,7 +225,7 @@ def bulker_init(config_path, template_config_path, container_engine=None):
         templates_subdir = os.path.join(dest_folder, TEMPLATE_SUBDIR)
         copy_tree(os.path.dirname(template_config_path), templates_subdir)
         new_template = os.path.join(dest_folder, os.path.basename(template_config_path))
-        bulker_config = yacman.YacAttMap(filepath=template_config_path)
+        bulker_config = yacman.YacAttMap(filepath=template_config_path, writable=True)
         _LOGGER.debug("Engine used: {}".format(container_engine))
         bulker_config.bulker.container_engine = container_engine
         if bulker_config.bulker.container_engine == "docker":
@@ -252,7 +252,8 @@ def mkdir(path, exist_ok=True):
         os.makedirs(path)
 
 
-def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, build=False, force=False):
+def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, 
+                build=False, force=False):
     manifest_name = cratevars['crate']
     # We store them in folder: namespace/crate/version
     if not crate_path:
@@ -261,7 +262,7 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, bui
                                   manifest_name,
                                   cratevars['tag'])
     if not os.path.isabs(crate_path):
-        crate_path = os.path.join(os.path.dirname(bcfg.filepath), crate_path)
+        crate_path = os.path.join(os.path.dirname(bcfg._file_path), crate_path)
 
     _LOGGER.debug("Crate path: {}".format(crate_path))
     _LOGGER.debug("cratevars: {}".format(cratevars))
@@ -329,7 +330,13 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, bui
                 fh.write(populated_template)
                 os.chmod(path, 0o755)
 
-    _LOGGER.info("Loading manifest: '{m}'. Activate with 'bulker activate {m}'.".format(m=manifest_name))
+    rp = "{namespace}/{crate}:{tag}".format(
+        namespace=cratevars['namespace'],
+        crate=cratevars['crate'],
+        tag=cratevars['tag'])
+
+    _LOGGER.info("Loading manifest: '{rp}'."
+                " Activate with 'bulker activate {rp}'.".format(rp=rp))
     _LOGGER.info("Commands available: {}".format(", ".join(cmdlist)))
 
 
@@ -491,7 +498,7 @@ def main():
 
     bulkercfg = select_bulker_config(args.config)
     _LOGGER.info("Bulker config: {}".format(bulkercfg))
-    bulker_config = yacman.YacAttMap(filepath=bulkercfg)
+    bulker_config = yacman.YacAttMap(filepath=bulkercfg, writable=True)
 
 
     if args.command == "list":

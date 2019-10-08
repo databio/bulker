@@ -49,6 +49,7 @@ def test_float_idx():
     with pytest.raises(KeyError):
         data[2]
 
+    del data
 
 
 def test_bulker_init():
@@ -63,6 +64,10 @@ def test_bulker_init():
     manifest, cratevars = load_remote_registry_path(bulker_config, 
                                                      "demo",
                                                      None)
+
+
+    # del bulker_config
+
     try:
         os.remove("test_bulker_init.yaml")
         shutil.rmtree('templates')
@@ -78,6 +83,7 @@ def test_nonconfig_load():
     # filepath that we'll delete later.
     DUMMY_CFGFILEPATH = "bulker/templates/tmp.yaml"
     bulker_config._file_path = DUMMY_CFGFILEPATH
+    bulker_config.make_writable()
     manifest, cratevars = load_remote_registry_path(bulker_config, "demo", None)
     exe_template = mkabs(bulker_config.bulker.executable_template, os.path.dirname(bulker_config._file_path))
     import jinja2
@@ -86,7 +92,8 @@ def test_nonconfig_load():
         contents = f.read()
         exe_template_jinja = jinja2.Template(contents)
     bulker_load(manifest, cratevars, bulker_config, exe_template_jinja, force=True)
-
+    bulker_config.unlock()
+    del bulker_config
     try:
         os.remove(DUMMY_CFGFILEPATH)
     except:

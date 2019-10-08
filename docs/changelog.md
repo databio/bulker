@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.3] -- 2019-10-08
+- Upgraded yacman to protect against two bulker processes writing to the config
+  file at the same time.
+
 ## [0.2.2] -- 2019-09-19
 - Fixed a bug with using the built-in config file
 
