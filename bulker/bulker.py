@@ -498,7 +498,7 @@ def main():
 
     bulkercfg = select_bulker_config(args.config)
     _LOGGER.info("Bulker config: {}".format(bulkercfg))
-    bulker_config = yacman.YacAttMap(filepath=bulkercfg, writable=True)
+    bulker_config = yacman.YacAttMap(filepath=bulkercfg, writable=False)
 
 
     if args.command == "list":
@@ -527,7 +527,7 @@ def main():
             _LOGGER.error("{} is not an available crate".format(e))
             sys.exit(1)
         except AttributeError as e:
-            _LOGGER.error("Your bulker config file is out of date: ".format(e))
+            _LOGGER.error("Your bulker config file is outdated, you need to re-initialize it: ".format(e))
             sys.exit(1)
 
     if args.command == "run":
@@ -541,6 +541,7 @@ def main():
             sys.exit(1)
 
     if args.command == "load":
+        bulker_config.make_writable()
         manifest, cratevars = load_remote_registry_path(bulker_config, 
                                                         args.crate_registry_paths,
                                                         args.manifest)
