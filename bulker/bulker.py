@@ -222,18 +222,19 @@ def bulker_init(config_path, template_config_path, container_engine=None):
         # dcc.write(config_path)
         # Init should *also* write the templates.
         dest_folder = os.path.dirname(config_path)
-        templates_subdir = os.path.join(dest_folder, TEMPLATE_SUBDIR)
-        copy_tree(os.path.dirname(template_config_path), templates_subdir)
+        dest_templates_dir = os.path.join(dest_folder, TEMPLATE_SUBDIR)
+        # templates_subdir =  TEMPLATE_SUBDIR
+        copy_tree(os.path.dirname(template_config_path), dest_templates_dir)
         new_template = os.path.join(dest_folder, os.path.basename(template_config_path))
         bulker_config = yacman.YacAttMap(filepath=template_config_path, writable=True)
         _LOGGER.debug("Engine used: {}".format(container_engine))
         bulker_config.bulker.container_engine = container_engine
         if bulker_config.bulker.container_engine == "docker":
-            bulker_config.bulker.executable_template = os.path.join(templates_subdir, DOCKER_EXE_TEMPLATE)
-            bulker_config.bulker.build_template = os.path.join(templates_subdir, DOCKER_BUILD_TEMPLATE)
+            bulker_config.bulker.executable_template = os.path.join(TEMPLATE_SUBDIR, DOCKER_EXE_TEMPLATE)
+            bulker_config.bulker.build_template = os.path.join(TEMPLATE_SUBDIR, DOCKER_BUILD_TEMPLATE)
         elif bulker_config.bulker.container_engine == "singularity":
-            bulker_config.bulker.executable_template = os.path.join(templates_subdir, SINGULARITY_EXE_TEMPLATE)
-            bulker_config.bulker.build_template = os.path.join(templates_subdir, SINGULARITY_BUILD_TEMPLATE)
+            bulker_config.bulker.executable_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_EXE_TEMPLATE)
+            bulker_config.bulker.build_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_BUILD_TEMPLATE)
         bulker_config.write(config_path)
         # copyfile(template_config_path, new_template)
         # os.rename(new_template, config_path)
@@ -343,6 +344,19 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None,
     bcfg.write()
 
 def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
+    """
+    Activates a given crate.
+
+    :param yacman.YacAttMap bulker_config: The bulker configuration object.
+    :param list cratelist: a list of cratevars objects, which are dicts with
+        values for 'namespace', 'crate', and 'tag'.
+    :param bool echo: Should we just echo the new PATH to create? Otherwise, the
+        function will create a new shell and replace the current process with
+        it.
+    :param bool strict: Should we wipe out the PATH, such that the returned
+        environment contains strictly only commands listed in the bulker
+        manifests?
+    """
     # activating is as simple as adding a crate folder to the PATH env var.
     newpath = get_new_PATH(bulker_config, cratelist, strict)
     _LOGGER.debug("Newpath: {}".format(newpath))
