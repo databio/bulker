@@ -1,7 +1,8 @@
 #!/bin/sh
 
 docker run --rm --init \{% if pkg.dockerargs %}
-  {{ pkg.dockerargs }} \{% endif %}
+  {{ pkg.dockerargs }} \{% endif %}{% if pkg.docker_args %}
+  {{ pkg.docker_args }} \{% endif %}
   --user=$(id -u):$(id -g) \
   --network="host" \{% for envvar in pkg.envvars %}
   --env "{{envvar}}" \{% endfor %}{% for volume in pkg.volumes %}

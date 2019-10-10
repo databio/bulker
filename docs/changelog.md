@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.X] -- Unreleased
+- Renamed 'dockerargs' to 'docker_args' and 'singularityargs' to
+  'singularity_args', which is more consistent with other attribute styles.
+- Implemented prototype container entry system, whereby you may type `_command`
+  after activating a crate to enter an interactive shell of the container that
+  is used to run that command.
+
 ## [0.2.4] -- 2019-10-11
 - Fixed a bug with file locks that prevented activating environments
 - Relative paths for singularity images in the bulker config are now made
