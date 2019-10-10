@@ -1,0 +1,10 @@
+manifest:
+  name: demo_import_lvl2
+  imports: 
+  - bulker/import:default
+  commands:
+  - command: pi_again
+    docker_image: nsheff/pi
+    docker_command: pi
+    docker_args: "-i"
+    
