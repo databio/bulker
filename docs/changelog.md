@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.4] -- 2019-10-11
+- Fixed a bug with file locks that prevented activating environments
+- Relative paths for singularity images in the bulker config are now made
+  relative to the config file, rather than to the working directory.
+
 ## [0.2.3] -- 2019-10-08
 - Upgraded yacman to protect against two bulker processes writing to the config
   file at the same time.
@@ -9,7 +14,9 @@
 
 ## [0.2.1] -- 2019-09-12
 - Fix problem with python2 compatibility
-- Init now copies over templates, which are relative to the config file. This makes it easier to share a bulker configuration in a shared computing environment.
+- Init now copies over templates, which are relative to the config file. This
+  makes it easier to share a bulker configuration in a shared computing
+  environment.
 - update registry to *hub.bulker.io*.
 
 ## [0.2.0] -- 2019-08-20
@@ -20,10 +27,12 @@
 - Add `host_commands` functionality (useful for `--strict` crates)
 
 ## [0.1.2] -- 2019-08-14
-- Fix a bug with compatibility of load from registry for older pythons (2.7/3.4).
+- Fix a bug with compatibility of load from registry for older pythons
+  (2.7/3.4).
 
 ## [0.1.1] -- 2019-08-13
-- Allows `activate` to return the export command, to enable `bulker-activate` shell approach (see tips)
+- Allows `activate` to return the export command, to enable `bulker-activate`
+  shell approach (see tips)
 - Implements initial bulker registry (file server version)
 - Improved argument parsing for `bulker run`
 
