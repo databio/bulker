@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.2.4] -- 2019-10-11
+- Fixed a bug with file locks that prevented activating environments
+
 ## [0.2.3] -- 2019-10-08
 - Upgraded yacman to protect against two bulker processes writing to the config
   file at the same time.
