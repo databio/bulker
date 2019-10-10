@@ -1,6 +1,6 @@
 #!/bin/sh
 
-docker run --rm --init \{% if pkg.dockerargs %}
+docker run --rm --init -it \{% if pkg.dockerargs %}
   {{ pkg.dockerargs }} \{% endif %}
   --user=$(id -u):$(id -g) \
   --network="host" \{% for envvar in pkg.envvars %}
@@ -12,4 +12,4 @@ docker run --rm --init \{% if pkg.dockerargs %}
   --volume="/etc/sudoers.d:/etc/sudoers.d:ro" \
   --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
   --workdir="`pwd`" \
-  {{ pkg.docker_image }} bash "$@"
+  {{ pkg.docker_image }} bash
