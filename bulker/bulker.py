@@ -292,6 +292,7 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None,
     # Now make the crate
     mkdir(crate_path, exist_ok=True)
     cmdlist = []
+    cmd_count = 0
     if hasattr(manifest.manifest, "commands") and manifest.manifest.commands:
         for pkg in manifest.manifest.commands:
             _LOGGER.debug(pkg)
@@ -330,21 +331,32 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None,
                 _LOGGER.info("Container available at: {cmd}".format(cmd=pkg["singularity_fullpath"]))
 
     # host commands
+    host_cmdlist = []
     if hasattr(manifest.manifest, "host_commands") and manifest.manifest.host_commands:
         _LOGGER.info("Populating host commands")
         for cmd in manifest.manifest.host_commands:
             _LOGGER.debug(cmd)
             if not is_command_callable(cmd):
                 _LOGGER.warning("Requested host command is not callable and "
-                "therefore not created: {}".format(cmd))
+                "therefore not created: '{}'".format(cmd))
                 continue
             local_exe = find_executable(cmd)
             populated_template = LOCAL_EXE_TEMPLATE.format(cmd=local_exe)
             path = os.path.join(crate_path, cmd)
-            cmdlist.append(cmd)
+            host_cmdlist.append(cmd)
             with open(path, "w") as fh:
                 fh.write(populated_template)
                 os.chmod(path, 0o755)
+
+    cmd_count = len(cmdlist)
+    host_cmd_count = len(host_cmdlist)
+    if cmd_count < 1 and host_cmd_count < 1:
+        _LOGGER.error("No commands provided. Crate not created.")
+        os.rmdir(crate_path)
+        crate_path_parent = os.path.dirname(crate_path)
+        if not os.listdir(crate_path_parent):
+            os.rmdir(crate_path_parent)
+        sys.exit(1)
 
     rp = "{namespace}/{crate}:{tag}".format(
         namespace=cratevars['namespace'],
@@ -353,7 +365,10 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None,
 
     _LOGGER.info("Loading manifest: '{rp}'."
                 " Activate with 'bulker activate {rp}'.".format(rp=rp))
-    _LOGGER.info("Commands available: {}".format(", ".join(cmdlist)))
+    if cmd_count > 0:
+        _LOGGER.info("Commands available: {}".format(", ".join(cmdlist)))
+    if host_cmd_count > 0:
+        _LOGGER.info("Host commands available: {}".format(", ".join(host_cmdlist)))
 
 
     bcfg.write()
