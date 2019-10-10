@@ -296,7 +296,31 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
 
 
     # Now make the crate
+
+    # First add any imports
+
     mkdir(crate_path, exist_ok=True)
+    if hasattr(manifest.manifest, "imports") and manifest.manifest.imports:
+        for imp in manifest.manifest.imports:
+            imp_cratevars = parse_registry_path(imp)
+            imp_crate_path = os.path.join(bcfg.bulker.default_crate_folder,
+                                  imp_cratevars['namespace'],
+                                  imp_cratevars['crate'],
+                                  imp_cratevars['tag'])
+            if not os.path.isabs(imp_crate_path):
+                imp_crate_path = os.path.join(os.path.dirname(bcfg._file_path), imp_crate_path)            
+            if not os.path.exists(imp_crate_path):
+                _LOGGER.error("Can't import crate '{}' from '{}'".format(imp, imp_crate_path))
+                # Recursively load any non-existant imported crates.
+                imp_manifest, imp_cratevars = load_remote_registry_path(bcfg, 
+                                                        imp, None)
+                _LOGGER.info(imp_manifest)
+                _LOGGER.info(imp_cratevars)
+                bulker_load(imp_manifest, imp_cratevars, bcfg, exe_jinja2_template,
+                shell_jinja2_template, crate_path=None, build=build, force=force)
+            _LOGGER.info("Importing crate '{}' from '{}'.".format(imp, imp_crate_path))
+            copy_tree(imp_crate_path, crate_path)
+
     cmdlist = []
     cmd_count = 0
     if hasattr(manifest.manifest, "commands") and manifest.manifest.commands:
@@ -576,7 +600,8 @@ def main():
 
     if args.command == "activate":
         try:
-            cratelist = parse_registry_paths(args.crate_registry_paths, bulker_config.bulker.default_namespace)
+            cratelist = parse_registry_paths(args.crate_registry_paths,
+                                             bulker_config.bulker.default_namespace)
             _LOGGER.debug(cratelist)
             _LOGGER.info("Activating bulker crate: {}\n".format(args.crate_registry_paths))
             bulker_activate(bulker_config, cratelist, echo=args.echo, strict=args.strict)

@@ -1,6 +1,6 @@
 manifest:
   name: demo_import
-  import: 
+  imports: 
   - bulker/alpine:default
   - bulker/demo:default
   commands:
