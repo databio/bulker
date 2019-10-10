@@ -526,6 +526,9 @@ def main():
             parser.print_help(sys.stderr)
             _LOGGER.error("{} is not an available crate".format(e))
             sys.exit(1)
+        except AttributeError as e:
+            _LOGGER.error("Your bulker config file is out of date: ".format(e))
+            sys.exit(1)
 
     if args.command == "run":
         try:
