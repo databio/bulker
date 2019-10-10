@@ -1,5 +1,5 @@
 #!/bin/sh
-
+echo "Starting interactive docker shell for image '{{ pkg.docker_image }}' and command '{{ pkg.command }}'"
 docker run --rm --init -it \{% if pkg.dockerargs %}
   {{ pkg.dockerargs }} \{% endif %}{% if pkg.docker_args %}
   {{ pkg.docker_args }} \{% endif %}
