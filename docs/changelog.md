@@ -1,11 +1,12 @@
 # Changelog
 
-## [0.2.X] -- Unreleased
+## [0.3.0] -- Unreleased
 - Renamed 'dockerargs' to 'docker_args' and 'singularityargs' to
   'singularity_args', which is more consistent with other attribute styles.
 - Implemented prototype container entry system, whereby you may type `_command`
   after activating a crate to enter an interactive shell of the container that
   is used to run that command.
+- Initial implementation of 'imports' domain capability.
 
 ## [0.2.4] -- 2019-10-11
 - Fixed a bug with file locks that prevented activating environments
