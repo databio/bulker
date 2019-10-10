@@ -1,0 +1,6 @@
+manifest:
+  name: bogus
+  commands: null
+  description: Bogus command
+  host_commands:
+  - boguscmd

@@ -311,7 +311,7 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None,
                                                 sif,
                                                 pkg["namespace"],
                                                 pkg["singularity_image"])
-                
+
                 mkdir(os.path.dirname(pkg["singularity_fullpath"]), exist_ok=True)
             command = pkg["command"]
             path = os.path.join(crate_path, command)
@@ -334,6 +334,10 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None,
         _LOGGER.info("Populating host commands")
         for cmd in manifest.manifest.host_commands:
             _LOGGER.debug(cmd)
+            if not is_command_callable(cmd):
+                _LOGGER.warning("Requested host command is not callable and "
+                "therefore not created: {}".format(cmd))
+                continue
             local_exe = find_executable(cmd)
             populated_template = LOCAL_EXE_TEMPLATE.format(cmd=local_exe)
             path = os.path.join(crate_path, cmd)
