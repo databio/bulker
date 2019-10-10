@@ -87,21 +87,21 @@ def test_nonconfig_load():
     bulker_config.make_writable()
     manifest, cratevars = load_remote_registry_path(bulker_config, "demo", None)
     exe_template = mkabs(bulker_config.bulker.executable_template, os.path.dirname(bulker_config._file_path))
-    # shell_template = mkabs(bulker_config.bulker.shell_template,
-    #                      os.path.dirname(bulker_config._file_path))        
+    shell_template = mkabs(bulker_config.bulker.shell_template,
+                         os.path.dirname(bulker_config._file_path))        
     import jinja2
     with open(exe_template, 'r') as f:
         contents = f.read()
         exe_template_jinja = jinja2.Template(contents)
 
-    # with open(shell_template, 'r') as f:
-    #     contents = f.read()
-    #     shell_template_jinja = jinja2.Template(contents)
+    with open(shell_template, 'r') as f:
+        contents = f.read()
+        shell_template_jinja = jinja2.Template(contents)
 
 
 
     bulker_load(manifest, cratevars, bulker_config, exe_template_jinja,
-    force=True)
+    shell_template_jinja, force=True)
     bulker_config.unlock()
 
     cratelist = parse_registry_paths("bulker/demo")

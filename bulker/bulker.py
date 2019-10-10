@@ -33,8 +33,11 @@ TEMPLATE_ABSPATH = os.path.join(
         TEMPLATE_SUBDIR)
 
 DOCKER_EXE_TEMPLATE = "docker_executable.jinja2"
+DOCKER_SHELL_TEMPLATE = "docker_shell.jinja2"
 DOCKER_BUILD_TEMPLATE =  "docker_build.jinja2"
+
 SINGULARITY_EXE_TEMPLATE =  "singularity_executable.jinja2"
+SINGULARITY_SHELL_TEMPLATE =  "singularity_shell.jinja2"
 SINGULARITY_BUILD_TEMPLATE =  "singularity_build.jinja2"
 
 DEFAULT_BASE_URL = "http://hub.bulker.io"
@@ -231,9 +234,11 @@ def bulker_init(config_path, template_config_path, container_engine=None):
         bulker_config.bulker.container_engine = container_engine
         if bulker_config.bulker.container_engine == "docker":
             bulker_config.bulker.executable_template = os.path.join(TEMPLATE_SUBDIR, DOCKER_EXE_TEMPLATE)
+            bulker_config.bulker.shell_template = os.path.join(TEMPLATE_SUBDIR, DOCKER_SHELL_TEMPLATE)
             bulker_config.bulker.build_template = os.path.join(TEMPLATE_SUBDIR, DOCKER_BUILD_TEMPLATE)
         elif bulker_config.bulker.container_engine == "singularity":
             bulker_config.bulker.executable_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_EXE_TEMPLATE)
+            bulker_config.bulker.shell_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_SHELL_TEMPLATE)
             bulker_config.bulker.build_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_BUILD_TEMPLATE)
         bulker_config.write(config_path)
         # copyfile(template_config_path, new_template)
@@ -253,7 +258,8 @@ def mkdir(path, exist_ok=True):
         os.makedirs(path)
 
 
-def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, 
+def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
+                shell_jinja2_template, crate_path=None, 
                 build=False, force=False):
     manifest_name = cratevars['crate']
     # We store them in folder: namespace/crate/version
@@ -298,7 +304,7 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None,
             _LOGGER.debug(pkg)
             pkg = yacman.YacAttMap(pkg)  # (otherwise it's just a dict)
             pkg.update(bcfg.bulker) # Add terms from the bulker config
-            if "singularity_image_folder" in pkg:
+            if pkg.container_engine == "singularity" and "singularity_image_folder" in pkg:
                 pkg["singularity_image"] = os.path.basename(pkg["docker_image"])
                 pkg["namespace"] = os.path.dirname(pkg["docker_image"])
 
@@ -319,8 +325,16 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None,
             _LOGGER.debug("Writing {cmd}".format(cmd=path))
             cmdlist.append(command)
             with open(path, "w") as fh:
-                fh.write(jinja2_template.render(pkg=pkg))
+                fh.write(exe_jinja2_template.render(pkg=pkg))
                 os.chmod(path, 0o755)
+
+            # shell commands
+            path_shell = os.path.join(crate_path, "_" + command)
+            _LOGGER.debug("Writing shell command: '{cmd}'".format(cmd=path_shell))
+            with open(path_shell, "w") as fh:
+                fh.write(shell_jinja2_template.render(pkg=pkg))
+                os.chmod(path_shell, 0o755)            
+
             if build:
                 buildscript = build.render(pkg=pkg)
                 x = os.system(buildscript)
@@ -591,9 +605,14 @@ def main():
                                                         args.manifest)
         exe_template_jinja = None
         build_template_jinja = None
+        shell_template_jinja = None
 
-        exe_template = mkabs(bulker_config.bulker.executable_template, os.path.dirname(bulker_config._file_path))
-        build_template = mkabs(bulker_config.bulker.build_template, os.path.dirname(bulker_config._file_path))
+        exe_template = mkabs(bulker_config.bulker.executable_template,
+                             os.path.dirname(bulker_config._file_path))
+        shell_template = mkabs(bulker_config.bulker.shell_template,
+                             os.path.dirname(bulker_config._file_path))        
+        build_template = mkabs(bulker_config.bulker.build_template, 
+                               os.path.dirname(bulker_config._file_path))
 
 
         _LOGGER.info("Executable template: {}".format(exe_template))
@@ -603,6 +622,11 @@ def main():
             contents = f.read()
             exe_template_jinja = jinja2.Template(contents)
 
+        with open(shell_template, 'r') as f:
+        # with open(DOCKER_TEMPLATE, 'r') as f:
+            contents = f.read()
+            shell_template_jinja = jinja2.Template(contents)
+
 
         if args.build:
             _LOGGER.info("Building images with template: {}".format(build_template))
@@ -610,7 +634,9 @@ def main():
                 contents = f.read()
                 build_template_jinja = jinja2.Template(contents)
 
-        bulker_load(manifest, cratevars, bulker_config, exe_template_jinja, 
+        bulker_load(manifest, cratevars, bulker_config, 
+                    exe_jinja2_template=exe_template_jinja, 
+                    shell_jinja2_template=shell_template_jinja, 
                     crate_path=args.path,
                     build=build_template_jinja,
                     force=args.force)
