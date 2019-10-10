@@ -296,11 +296,22 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None,
         for pkg in manifest.manifest.commands:
             _LOGGER.debug(pkg)
             pkg = yacman.YacAttMap(pkg)  # (otherwise it's just a dict)
-            pkg.update(bcfg.bulker)
+            pkg.update(bcfg.bulker) # Add terms from the bulker config
             if "singularity_image_folder" in pkg:
                 pkg["singularity_image"] = os.path.basename(pkg["docker_image"])
                 pkg["namespace"] = os.path.dirname(pkg["docker_image"])
-                pkg["singularity_fullpath"] = os.path.join(pkg["singularity_image_folder"], pkg["namespace"], pkg["singularity_image"])
+
+                if os.path.isabs(pkg["singularity_image_folder"]):
+                    sif = pkg["singularity_image_folder"]
+                else:
+                    sif = os.path.join(os.path.dirname(bcfg._file_path),
+                                       pkg["singularity_image_folder"])
+
+                pkg["singularity_fullpath"] = os.path.join(
+                                                sif,
+                                                pkg["namespace"],
+                                                pkg["singularity_image"])
+                
                 mkdir(os.path.dirname(pkg["singularity_fullpath"]), exist_ok=True)
             command = pkg["command"]
             path = os.path.join(crate_path, command)
