@@ -160,6 +160,14 @@ def parse_registry_path(path, default_namespace="bulker"):
         ("subcrate", None),
         ("tag", "default")])
 
+def parse_registry_path_image(path, default_namespace="docker"):
+    return prp(path, defaults=[
+        ("protocol", None),
+        ("namespace", default_namespace),
+        ("image", None),
+        ("subimage", None),
+        ("tag", "latest")])
+
 
 def parse_registry_paths(paths, default_namespace="bulker"):
     if "," in paths:
@@ -321,6 +329,20 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
             _LOGGER.info("Importing crate '{}' from '{}'.".format(imp, imp_crate_path))
             copy_tree(imp_crate_path, crate_path)
 
+    # should put this in a function
+    def host_tool_specific_args(bcfg, pkg):
+        _LOGGER.info(pkg)
+        # Here we're parsing the *image*, not the crate registry path.
+        imvars = parse_registry_path_image(pkg['docker_image'])
+        _LOGGER.info(imvars)
+        try:
+            string = bcfg.bulker.tool_args[imvars['namespace']][imvars['image']].docker_args
+            _LOGGER.info(string)
+            return string
+        except:
+            _LOGGER.info("None found.")
+            return ""
+
     cmdlist = []
     cmd_count = 0
     if hasattr(manifest.manifest, "commands") and manifest.manifest.commands:
@@ -348,6 +370,14 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
             path = os.path.join(crate_path, command)
             _LOGGER.debug("Writing {cmd}".format(cmd=path))
             cmdlist.append(command)
+
+            # Add any host-specific tool-specific args
+            hts = host_tool_specific_args(bcfg, pkg)
+            if hasattr(pkg, "docker_args"):
+                pkg.docker_args += " " + hts
+            else:
+                pkg.docker_args = hts
+
             with open(path, "w") as fh:
                 fh.write(exe_jinja2_template.render(pkg=pkg))
                 os.chmod(path, 0o755)

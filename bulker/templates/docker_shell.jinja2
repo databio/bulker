@@ -12,5 +12,5 @@ docker run --rm --init -it \{% if pkg.dockerargs %}
   --volume="/etc/shadow:/etc/shadow:ro"  \
   --volume="/etc/sudoers.d:/etc/sudoers.d:ro" \
   --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-  --workdir="`pwd`" \
+  --workdir="{% if pkg.workdir %}{{ pkg.workdir }}{% else %}`pwd`{% endif %}" \
   {{ pkg.docker_image }} bash
