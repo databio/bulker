@@ -336,7 +336,11 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
         imvars = parse_registry_path_image(pkg['docker_image'])
         _LOGGER.info(imvars)
         try:
-            string = bcfg.bulker.tool_args[imvars['namespace']][imvars['image']].docker_args
+            amap = bcfg.bulker.tool_args[imvars['namespace']][imvars['image']]
+            if imvars['tag'] != 'default' and hasattr(amap, imvars['tag']):
+                string = amap[imvars['tag']].docker_args
+            else:
+                string = amap.default.docker_args
             _LOGGER.info(string)
             return string
         except:
