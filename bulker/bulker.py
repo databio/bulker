@@ -6,20 +6,17 @@ import jinja2
 import logging
 import logmuse
 import os
-import re
 import sys
 import yacman
 import shutil
 
 from distutils.dir_util import copy_tree
 from distutils.spawn import find_executable
-from shutil import copyfile
 
 from ubiquerg import is_url, is_command_callable, parse_registry_path as prp, \
                     query_yes_no
 
 
-from collections import OrderedDict
 from . import __version__
 
 TEMPLATE_SUBDIR = "templates"
@@ -177,32 +174,10 @@ def parse_registry_paths(paths, default_namespace="bulker"):
     _LOGGER.debug("Split registry paths: {}".format(paths))
     return [parse_registry_path(p, default_namespace) for p in paths]
 
+
 def _is_writable(folder, check_exist=False, create=False):
-    """
-    Make sure a folder is writable.
-
-    Given a folder, check that it exists and is writable. Errors if requested on
-    a non-existent folder. Otherwise, make sure the first existing parent folder
-    is writable such that this folder could be created.
-
-    :param str folder: Folder to check for writeability.
-    :param bool check_exist: Throw an error if it doesn't exist?
-    :param bool create: Create the folder if it doesn't exist?
-    """
-    folder = folder or "."
-
-    if os.path.exists(folder):
-        return os.access(folder, os.W_OK) and os.access(folder, os.X_OK)
-    elif create_folder:
-        os.mkdir(folder)
-    elif check_exist:
-        raise OSError("Folder not found: {}".format(folder))
-    else:
-        _LOGGER.debug("Folder not found: {}".format(folder))
-        # The folder didn't exist. Recurse up the folder hierarchy to make sure
-        # all paths are writable
-        return _is_writable(os.path.dirname(folder), strict_exists)
-
+    from ubiquerg import is_writable
+    return is_writable(folder, check_exist, create)
 
 def bulker_init(config_path, template_config_path, container_engine=None):
     """
