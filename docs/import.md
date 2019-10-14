@@ -9,7 +9,7 @@ For example, this manifest (`import.yaml`) has an `imports` section that provide
 manifest:
   name: demo_import
   imports: 
-  - bulker/alpine2:default
+  - bulker/alpine:default
   - bulker/demo:default
   commands:
   - command: pi
