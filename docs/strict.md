@@ -1,0 +1,6 @@
+# How to create strict environments
+
+The activate and run commands are quite simple: to construct the computing environment, they simply prepend the appropriate folder to the user's PATH variable, providing a shell execution environment in which all the manifest commands are available for direct execution. By prepending to the PATH variable, these commands have the effect of *overlaying* the commands on the current environment. In other words, any commands included in the crate will mask existing commands, but any unmasked host commands will be also be available. This feature is desirable in some cases, such as interactive analysis, but may be problematic if strict reproducibility is required. In this case, bulker also provides a `--strict` flag that provides an environment in which no host commands are directly accessible, so that only commands included in the crate will be available. This is accomplished by overwriting rather than prepending the PATH with a crate path.
+
+
+<!-- By default, when you activate a crate, bulker simply prepends the manifest commands to your `PATH`. -->
