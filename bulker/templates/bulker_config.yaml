@@ -1,5 +1,5 @@
 bulker:
-  volumes: ['/tmp']
+  volumes: ['/tmp', '$HOME']
   envvars: ['DISPLAY']
   default_crate_folder: ${HOME}/bulker_crates
   singularity_image_folder: ${HOME}/simages
