@@ -6,20 +6,17 @@ import jinja2
 import logging
 import logmuse
 import os
-import re
 import sys
 import yacman
 import shutil
 
 from distutils.dir_util import copy_tree
 from distutils.spawn import find_executable
-from shutil import copyfile
 
 from ubiquerg import is_url, is_command_callable, parse_registry_path as prp, \
                     query_yes_no
 
 
-from collections import OrderedDict
 from . import __version__
 
 TEMPLATE_SUBDIR = "templates"
@@ -34,11 +31,11 @@ TEMPLATE_ABSPATH = os.path.join(
 
 DOCKER_EXE_TEMPLATE = "docker_executable.jinja2"
 DOCKER_SHELL_TEMPLATE = "docker_shell.jinja2"
-DOCKER_BUILD_TEMPLATE =  "docker_build.jinja2"
+DOCKER_BUILD_TEMPLATE = "docker_build.jinja2"
 
-SINGULARITY_EXE_TEMPLATE =  "singularity_executable.jinja2"
-SINGULARITY_SHELL_TEMPLATE =  "singularity_shell.jinja2"
-SINGULARITY_BUILD_TEMPLATE =  "singularity_build.jinja2"
+SINGULARITY_EXE_TEMPLATE = "singularity_executable.jinja2"
+SINGULARITY_SHELL_TEMPLATE = "singularity_shell.jinja2"
+SINGULARITY_BUILD_TEMPLATE = "singularity_build.jinja2"
 
 DEFAULT_BASE_URL = "http://hub.bulker.io"
 
@@ -177,32 +174,10 @@ def parse_registry_paths(paths, default_namespace="bulker"):
     _LOGGER.debug("Split registry paths: {}".format(paths))
     return [parse_registry_path(p, default_namespace) for p in paths]
 
+
 def _is_writable(folder, check_exist=False, create=False):
-    """
-    Make sure a folder is writable.
-
-    Given a folder, check that it exists and is writable. Errors if requested on
-    a non-existent folder. Otherwise, make sure the first existing parent folder
-    is writable such that this folder could be created.
-
-    :param str folder: Folder to check for writeability.
-    :param bool check_exist: Throw an error if it doesn't exist?
-    :param bool create: Create the folder if it doesn't exist?
-    """
-    folder = folder or "."
-
-    if os.path.exists(folder):
-        return os.access(folder, os.W_OK) and os.access(folder, os.X_OK)
-    elif create_folder:
-        os.mkdir(folder)
-    elif check_exist:
-        raise OSError("Folder not found: {}".format(folder))
-    else:
-        _LOGGER.debug("Folder not found: {}".format(folder))
-        # The folder didn't exist. Recurse up the folder hierarchy to make sure
-        # all paths are writable
-        return _is_writable(os.path.dirname(folder), strict_exists)
-
+    from ubiquerg import is_writable
+    return is_writable(folder, check_exist, create)
 
 def bulker_init(config_path, template_config_path, container_engine=None):
     """
@@ -322,8 +297,8 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
                 # Recursively load any non-existant imported crates.
                 imp_manifest, imp_cratevars = load_remote_registry_path(bcfg, 
                                                         imp, None)
-                _LOGGER.info(imp_manifest)
-                _LOGGER.info(imp_cratevars)
+                _LOGGER.debug(imp_manifest)
+                _LOGGER.debug(imp_cratevars)
                 bulker_load(imp_manifest, imp_cratevars, bcfg, exe_jinja2_template,
                 shell_jinja2_template, crate_path=None, build=build, force=force)
             _LOGGER.info("Importing crate '{}' from '{}'.".format(imp, imp_crate_path))
@@ -331,20 +306,20 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
 
     # should put this in a function
     def host_tool_specific_args(bcfg, pkg):
-        _LOGGER.info(pkg)
+        _LOGGER.debug(pkg)
         # Here we're parsing the *image*, not the crate registry path.
         imvars = parse_registry_path_image(pkg['docker_image'])
-        _LOGGER.info(imvars)
+        _LOGGER.debug(imvars)
         try:
             amap = bcfg.bulker.tool_args[imvars['namespace']][imvars['image']]
             if imvars['tag'] != 'default' and hasattr(amap, imvars['tag']):
                 string = amap[imvars['tag']].docker_args
             else:
                 string = amap.default.docker_args
-            _LOGGER.info(string)
+            _LOGGER.debug(string)
             return string
         except:
-            _LOGGER.info("None found.")
+            _LOGGER.debug("None found.")
             return ""
 
     cmdlist = []
@@ -674,7 +649,7 @@ def main():
                                os.path.dirname(bulker_config._file_path))
 
 
-        _LOGGER.info("Executable template: {}".format(exe_template))
+        _LOGGER.debug("Executable template: {}".format(exe_template))
         assert(os.path.exists(exe_template))
         with open(exe_template, 'r') as f:
         # with open(DOCKER_TEMPLATE, 'r') as f:
