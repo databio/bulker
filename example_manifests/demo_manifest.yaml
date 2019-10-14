@@ -2,24 +2,24 @@ manifest:
   name: demo
   commands:
   - command: samtools
-    dockerargs: "-i"
+    docker_args: "-i"
     docker_image: quay.io/biocontainers/samtools:1.9--h91753b0_8
   - command: python
-    dockerargs: "-it"
+    docker_args: "-it"
     docker_image: python:3.7.4
     docker_command: python
   - command: pip
-    dockerargs: "-it"
+    docker_args: "-it"
     docker_image: python:3.7.4
     docker_command: pip
   - command: R
-    dockerargs: "-it --volume=${HOME}/.local/lib/R:/usr/local/lib/R/host-site-library"
+    docker_args: "-it --volume=${HOME}/.local/lib/R:/usr/local/lib/R/host-site-library"
     docker_image: r-base:3.6.1
     docker_command: R
   - command: Rscript
-    dockerargs: "--volume=${HOME}/.local/lib/R:/usr/local/lib/R/host-site-library"
+    docker_args: "--volume=${HOME}/.local/lib/R:/usr/local/lib/R/host-site-library"
     docker_image: r-base:3.6.1
     docker_command: Rscript  
   - command: pandoc
     docker_image: nsheff/pandoc
-    dockerargs: "-i"
+    docker_args: "-i"

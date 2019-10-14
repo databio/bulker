@@ -5,7 +5,7 @@ manifest:
   - command: cowsay
     docker_image: nsheff/cowsay
     docker_command: cowsay
-    dockerargs: "-i"
+    docker_args: "-i"
   - command: fortune
     docker_image: nsheff/fortune
     docker_command: fortune

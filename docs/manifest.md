@@ -10,14 +10,14 @@ manifest:
   - command: cowsay
     docker_image: nsheff/cowsay
     docker_command: cowsay
-    dockerargs: "-i"
+    docker_args: "-i"
   - command: fortune
     docker_image: nsheff/fortune
     docker_command: fortune
 ```
 1. *command* is the executable name; this is what the user will type in to run the command (*e.g.* `cowsay`).
 
-2. *dockerargs* is any additional arguments required by this tool. You should add `-i` for tools that need to read/write piped output to/from stdin and stdout, and add `-t` for commands like `python` or `R` that allocate a user interface.
+2. *docker_args* is any additional arguments required by this tool. You should add `-i` for tools that need to read/write piped output to/from stdin and stdout, and add `-t` for commands like `python` or `R` that allocate a user interface.
 
 3. *docker_image* is the location of the image.
 
