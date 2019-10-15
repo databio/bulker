@@ -643,8 +643,12 @@ def main():
 
         exe_template = mkabs(bulker_config.bulker.executable_template,
                              os.path.dirname(bulker_config._file_path))
-        shell_template = mkabs(bulker_config.bulker.shell_template,
+        try:
+            shell_template = mkabs(bulker_config.bulker.shell_template,
                              os.path.dirname(bulker_config._file_path))        
+        except AttributeError:
+            _LOGGER.error("You need to re-initialize your bulker config or add a 'shell_template' attribute.")
+            sys.exit(1)
         build_template = mkabs(bulker_config.bulker.build_template, 
                                os.path.dirname(bulker_config._file_path))
 
