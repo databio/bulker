@@ -10,14 +10,14 @@ manifest:
   - command: cowsay
     docker_image: nsheff/cowsay
     docker_command: cowsay
-    dockerargs: "-i"
+    docker_args: "-i"
   - command: fortune
     docker_image: nsheff/fortune
     docker_command: fortune
 ```
 1. *command* is the executable name; this is what the user will type in to run the command (*e.g.* `cowsay`).
 
-2. *dockerargs* is any additional arguments required by this tool. You should add `-i` for tools that need to read/write piped output to/from stdin and stdout, and add `-t` for commands like `python` or `R` that allocate a user interface.
+2. *docker_args* is any additional arguments required by this tool. You should add `-i` for tools that need to read/write piped output to/from stdin and stdout, and add `-t` for commands like `python` or `R` that allocate a user interface.
 
 3. *docker_image* is the location of the image.
 
@@ -25,15 +25,17 @@ manifest:
 
 That's it. If you want your manifest to specify specific versions of images, make sure you include the tags in your `docker_image` strings.
 
-For now, check out these examples at [hub.bulker.io](http://hub.bulker.io):
+## Examples
+
+Check out these examples at [http://hub.bulker.io](http://hub.bulker.io):
+
 
 Demos:
 
-- [demo manifest](http://big.databio.org/bulker/demo.yaml)
-- [pi manifest](http://big.databio.org/bulker/pi.yaml)
-- [cowsay+fortune](http://big.databio.org/bulker/cowsay_fortune.yaml)
+- [demo manifest](http://hub.bulker.io/bulker/demo.yaml) - Cowsay and fortune example
+- [pi manifest](http://hub.bulker.io/bulker/pi.yaml) - Example of the `pi` command.
 
 Real-life manifests:
 
-- [my personal manifest](http://big.databio.org/bulker/databio/nsheff.yaml)
-- [peppro pipeline manifest](http://big.databio.org/bulker/databio/peppro.yaml)
+- [my personal manifest](http://hub.bulker.io/databio/nsheff.yaml) - My manifest for everyday computing
+- [peppro pipeline manifest](http://hub.bulker.io/databio/peppro.yaml) - pipeline manifest for PEPPRO.

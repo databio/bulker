@@ -3,16 +3,23 @@ site_logo: img/bulker_logo_gray.svg
 site_url: http://bulker.databio.org/
 repo_url: http://github.com/databio/bulker
 pypi_name: bulker
+paper_link: http://dx.doi.org/10.31219/osf.io/natsj 
 
 nav:
   - Getting Started: 
     - Introduction: README.md
     - Motivation: motivation.md
     - Install and configure: install.md
-  - How-to Guides:
     - "Tutorial": tutorial.md
-    - Bioinformatics tutorial: peppro.md
+    - PEPPRO pipeline tutorial: peppro.md
+    - Refgenie tutorial: refgenie_tutorial.md
+  - How-to Guides:
+    - Create strict environments: strict.md
     - Write a manifest: manifest.md
+    - Import crates: import.md
+    - Start an exploratory shell: shell.md
+    - Host- and tool-specific settings: settings.md
+    - Use a bulker registry: registry.md
   - Reference:
     - Tips: tips.md
     - Support: https://github.com/databio/bulker/issues

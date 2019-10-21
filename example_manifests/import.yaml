@@ -1,0 +1,11 @@
+manifest:
+  name: demo_import
+  imports: 
+  - bulker/alpine2:default
+  - bulker/demo:default
+  commands:
+  - command: pi
+    docker_image: nsheff/pi
+    docker_command: pi
+    docker_args: "-i"
+    

@@ -6,20 +6,17 @@ import jinja2
 import logging
 import logmuse
 import os
-import re
 import sys
 import yacman
 import shutil
 
 from distutils.dir_util import copy_tree
 from distutils.spawn import find_executable
-from shutil import copyfile
 
 from ubiquerg import is_url, is_command_callable, parse_registry_path as prp, \
                     query_yes_no
 
 
-from collections import OrderedDict
 from . import __version__
 
 TEMPLATE_SUBDIR = "templates"
@@ -33,9 +30,12 @@ TEMPLATE_ABSPATH = os.path.join(
         TEMPLATE_SUBDIR)
 
 DOCKER_EXE_TEMPLATE = "docker_executable.jinja2"
-DOCKER_BUILD_TEMPLATE =  "docker_build.jinja2"
-SINGULARITY_EXE_TEMPLATE =  "singularity_executable.jinja2"
-SINGULARITY_BUILD_TEMPLATE =  "singularity_build.jinja2"
+DOCKER_SHELL_TEMPLATE = "docker_shell.jinja2"
+DOCKER_BUILD_TEMPLATE = "docker_build.jinja2"
+
+SINGULARITY_EXE_TEMPLATE = "singularity_executable.jinja2"
+SINGULARITY_SHELL_TEMPLATE = "singularity_shell.jinja2"
+SINGULARITY_BUILD_TEMPLATE = "singularity_build.jinja2"
 
 DEFAULT_BASE_URL = "http://hub.bulker.io"
 
@@ -157,6 +157,14 @@ def parse_registry_path(path, default_namespace="bulker"):
         ("subcrate", None),
         ("tag", "default")])
 
+def parse_registry_path_image(path, default_namespace="docker"):
+    return prp(path, defaults=[
+        ("protocol", None),
+        ("namespace", default_namespace),
+        ("image", None),
+        ("subimage", None),
+        ("tag", "latest")])
+
 
 def parse_registry_paths(paths, default_namespace="bulker"):
     if "," in paths:
@@ -166,32 +174,10 @@ def parse_registry_paths(paths, default_namespace="bulker"):
     _LOGGER.debug("Split registry paths: {}".format(paths))
     return [parse_registry_path(p, default_namespace) for p in paths]
 
+
 def _is_writable(folder, check_exist=False, create=False):
-    """
-    Make sure a folder is writable.
-
-    Given a folder, check that it exists and is writable. Errors if requested on
-    a non-existent folder. Otherwise, make sure the first existing parent folder
-    is writable such that this folder could be created.
-
-    :param str folder: Folder to check for writeability.
-    :param bool check_exist: Throw an error if it doesn't exist?
-    :param bool create: Create the folder if it doesn't exist?
-    """
-    folder = folder or "."
-
-    if os.path.exists(folder):
-        return os.access(folder, os.W_OK) and os.access(folder, os.X_OK)
-    elif create_folder:
-        os.mkdir(folder)
-    elif check_exist:
-        raise OSError("Folder not found: {}".format(folder))
-    else:
-        _LOGGER.debug("Folder not found: {}".format(folder))
-        # The folder didn't exist. Recurse up the folder hierarchy to make sure
-        # all paths are writable
-        return _is_writable(os.path.dirname(folder), strict_exists)
-
+    from ubiquerg import is_writable
+    return is_writable(folder, check_exist, create)
 
 def bulker_init(config_path, template_config_path, container_engine=None):
     """
@@ -231,9 +217,11 @@ def bulker_init(config_path, template_config_path, container_engine=None):
         bulker_config.bulker.container_engine = container_engine
         if bulker_config.bulker.container_engine == "docker":
             bulker_config.bulker.executable_template = os.path.join(TEMPLATE_SUBDIR, DOCKER_EXE_TEMPLATE)
+            bulker_config.bulker.shell_template = os.path.join(TEMPLATE_SUBDIR, DOCKER_SHELL_TEMPLATE)
             bulker_config.bulker.build_template = os.path.join(TEMPLATE_SUBDIR, DOCKER_BUILD_TEMPLATE)
         elif bulker_config.bulker.container_engine == "singularity":
             bulker_config.bulker.executable_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_EXE_TEMPLATE)
+            bulker_config.bulker.shell_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_SHELL_TEMPLATE)
             bulker_config.bulker.build_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_BUILD_TEMPLATE)
         bulker_config.write(config_path)
         # copyfile(template_config_path, new_template)
@@ -253,7 +241,8 @@ def mkdir(path, exist_ok=True):
         os.makedirs(path)
 
 
-def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None, 
+def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
+                shell_jinja2_template, crate_path=None, 
                 build=False, force=False):
     manifest_name = cratevars['crate']
     # We store them in folder: namespace/crate/version
@@ -290,7 +279,49 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None,
 
 
     # Now make the crate
+
+    # First add any imports
+
     mkdir(crate_path, exist_ok=True)
+    if hasattr(manifest.manifest, "imports") and manifest.manifest.imports:
+        for imp in manifest.manifest.imports:
+            imp_cratevars = parse_registry_path(imp)
+            imp_crate_path = os.path.join(bcfg.bulker.default_crate_folder,
+                                  imp_cratevars['namespace'],
+                                  imp_cratevars['crate'],
+                                  imp_cratevars['tag'])
+            if not os.path.isabs(imp_crate_path):
+                imp_crate_path = os.path.join(os.path.dirname(bcfg._file_path), imp_crate_path)            
+            if not os.path.exists(imp_crate_path):
+                _LOGGER.error("Can't import crate '{}' from '{}'".format(imp, imp_crate_path))
+                # Recursively load any non-existant imported crates.
+                imp_manifest, imp_cratevars = load_remote_registry_path(bcfg, 
+                                                        imp, None)
+                _LOGGER.debug(imp_manifest)
+                _LOGGER.debug(imp_cratevars)
+                bulker_load(imp_manifest, imp_cratevars, bcfg, exe_jinja2_template,
+                shell_jinja2_template, crate_path=None, build=build, force=force)
+            _LOGGER.info("Importing crate '{}' from '{}'.".format(imp, imp_crate_path))
+            copy_tree(imp_crate_path, crate_path)
+
+    # should put this in a function
+    def host_tool_specific_args(bcfg, pkg):
+        _LOGGER.debug(pkg)
+        # Here we're parsing the *image*, not the crate registry path.
+        imvars = parse_registry_path_image(pkg['docker_image'])
+        _LOGGER.debug(imvars)
+        try:
+            amap = bcfg.bulker.tool_args[imvars['namespace']][imvars['image']]
+            if imvars['tag'] != 'default' and hasattr(amap, imvars['tag']):
+                string = amap[imvars['tag']].docker_args
+            else:
+                string = amap.default.docker_args
+            _LOGGER.debug(string)
+            return string
+        except:
+            _LOGGER.debug("None found.")
+            return ""
+
     cmdlist = []
     cmd_count = 0
     if hasattr(manifest.manifest, "commands") and manifest.manifest.commands:
@@ -298,7 +329,7 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None,
             _LOGGER.debug(pkg)
             pkg = yacman.YacAttMap(pkg)  # (otherwise it's just a dict)
             pkg.update(bcfg.bulker) # Add terms from the bulker config
-            if "singularity_image_folder" in pkg:
+            if pkg.container_engine == "singularity" and "singularity_image_folder" in pkg:
                 pkg["singularity_image"] = os.path.basename(pkg["docker_image"])
                 pkg["namespace"] = os.path.dirname(pkg["docker_image"])
 
@@ -318,9 +349,25 @@ def bulker_load(manifest, cratevars, bcfg, jinja2_template, crate_path=None,
             path = os.path.join(crate_path, command)
             _LOGGER.debug("Writing {cmd}".format(cmd=path))
             cmdlist.append(command)
+
+            # Add any host-specific tool-specific args
+            hts = host_tool_specific_args(bcfg, pkg)
+            if hasattr(pkg, "docker_args"):
+                pkg.docker_args += " " + hts
+            else:
+                pkg.docker_args = hts
+
             with open(path, "w") as fh:
-                fh.write(jinja2_template.render(pkg=pkg))
+                fh.write(exe_jinja2_template.render(pkg=pkg))
                 os.chmod(path, 0o755)
+
+            # shell commands
+            path_shell = os.path.join(crate_path, "_" + command)
+            _LOGGER.debug("Writing shell command: '{cmd}'".format(cmd=path_shell))
+            with open(path_shell, "w") as fh:
+                fh.write(shell_jinja2_template.render(pkg=pkg))
+                os.chmod(path_shell, 0o755)            
+
             if build:
                 buildscript = build.render(pkg=pkg)
                 x = os.system(buildscript)
@@ -562,7 +609,8 @@ def main():
 
     if args.command == "activate":
         try:
-            cratelist = parse_registry_paths(args.crate_registry_paths, bulker_config.bulker.default_namespace)
+            cratelist = parse_registry_paths(args.crate_registry_paths,
+                                             bulker_config.bulker.default_namespace)
             _LOGGER.debug(cratelist)
             _LOGGER.info("Activating bulker crate: {}\n".format(args.crate_registry_paths))
             bulker_activate(bulker_config, cratelist, echo=args.echo, strict=args.strict)
@@ -591,17 +639,31 @@ def main():
                                                         args.manifest)
         exe_template_jinja = None
         build_template_jinja = None
+        shell_template_jinja = None
 
-        exe_template = mkabs(bulker_config.bulker.executable_template, os.path.dirname(bulker_config._file_path))
-        build_template = mkabs(bulker_config.bulker.build_template, os.path.dirname(bulker_config._file_path))
+        exe_template = mkabs(bulker_config.bulker.executable_template,
+                             os.path.dirname(bulker_config._file_path))
+        try:
+            shell_template = mkabs(bulker_config.bulker.shell_template,
+                             os.path.dirname(bulker_config._file_path))        
+        except AttributeError:
+            _LOGGER.error("You need to re-initialize your bulker config or add a 'shell_template' attribute.")
+            sys.exit(1)
+        build_template = mkabs(bulker_config.bulker.build_template, 
+                               os.path.dirname(bulker_config._file_path))
 
 
-        _LOGGER.info("Executable template: {}".format(exe_template))
+        _LOGGER.debug("Executable template: {}".format(exe_template))
         assert(os.path.exists(exe_template))
         with open(exe_template, 'r') as f:
         # with open(DOCKER_TEMPLATE, 'r') as f:
             contents = f.read()
             exe_template_jinja = jinja2.Template(contents)
+
+        with open(shell_template, 'r') as f:
+        # with open(DOCKER_TEMPLATE, 'r') as f:
+            contents = f.read()
+            shell_template_jinja = jinja2.Template(contents)
 
 
         if args.build:
@@ -610,7 +672,9 @@ def main():
                 contents = f.read()
                 build_template_jinja = jinja2.Template(contents)
 
-        bulker_load(manifest, cratevars, bulker_config, exe_template_jinja, 
+        bulker_load(manifest, cratevars, bulker_config, 
+                    exe_jinja2_template=exe_template_jinja, 
+                    shell_jinja2_template=shell_template_jinja, 
                     crate_path=args.path,
                     build=build_template_jinja,
                     force=args.force)
