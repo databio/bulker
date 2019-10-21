@@ -29,6 +29,7 @@ That's it. If you want your manifest to specify specific versions of images, mak
 
 Check out these examples at [http://hub.bulker.io](http://hub.bulker.io):
 
+
 Demos:
 
 - [demo manifest](http://hub.bulker.io/bulker/demo.yaml) - Cowsay and fortune example
