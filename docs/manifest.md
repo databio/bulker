@@ -25,15 +25,16 @@ manifest:
 
 That's it. If you want your manifest to specify specific versions of images, make sure you include the tags in your `docker_image` strings.
 
-For now, check out these examples at [big.databio.org/bulker](http://big.databio.org/bulker):
+## Examples
+
+Check out these examples at [http://hub.bulker.io](http://hub.bulker.io):
 
 Demos:
 
-- [demo manifest](http://big.databio.org/bulker/demo.yaml)
-- [pi manifest](http://big.databio.org/bulker/pi.yaml)
-- [cowsay+fortune](http://big.databio.org/bulker/cowsay_fortune.yaml)
+- [demo manifest](http://hub.bulker.io/bulker/demo.yaml) - Cowsay and fortune example
+- [pi manifest](http://hub.bulker.io/bulker/pi.yaml) - Example of the `pi` command.
 
 Real-life manifests:
 
-- [my personal manifest](http://big.databio.org/bulker/databio/nsheff.yaml)
-- [peppro pipeline manifest](http://big.databio.org/bulker/databio/peppro.yaml)
+- [my personal manifest](http://hub.bulker.io/databio/nsheff.yaml) - My manifest for everyday computing
+- [peppro pipeline manifest](http://hub.bulker.io/databio/peppro.yaml) - pipeline manifest for PEPPRO.
