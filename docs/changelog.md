@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.3.0] -- Unreleased
+## [0.3.0] -- 2019-10-21
 - Renamed 'dockerargs' to 'docker_args' and 'singularityargs' to
   'singularity_args', which is more consistent with other attribute styles.
 - Implemented prototype container entry system, whereby you may type `_command`
