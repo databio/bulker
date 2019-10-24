@@ -45,6 +45,25 @@ LOCAL_EXE_TEMPLATE = """
 
 _LOGGER = logging.getLogger(__name__)
 
+
+
+# TODO: move to exceptions file
+
+import abc
+
+#__all__ = ["MissingCrateError"]
+
+class BulkerError(Exception):
+    """ Base exception type for this package """
+    __metaclass__ = abc.ABCMeta
+
+
+class MissingCrateError(BulkerError):
+    """ Error type for request of an unavailable genome asset. """
+    pass
+
+
+
 class _VersionInHelpParser(argparse.ArgumentParser):
     def format_help(self):
         """ Add version information to help text. """
@@ -462,6 +481,8 @@ def get_new_PATH(bulker_config, cratelist, strict=False):
 
     :: param str crates :: string with a comma-separated list of crate identifiers
     """
+    if not bulker_config.bulker.crates:
+        raise MissingCrateError("No crates exist")
 
     cratepaths = ""
     for cratevars in cratelist:
@@ -618,8 +639,11 @@ def main():
             parser.print_help(sys.stderr)
             _LOGGER.error("{} is not an available crate".format(e))
             sys.exit(1)
+        except MissingCrateError as e:
+            _LOGGER.error("Missing crate: {}".format(e))
+            sys.exit(1)
         except AttributeError as e:
-            _LOGGER.error("Your bulker config file is outdated, you need to re-initialize it: ".format(e))
+            _LOGGER.error("Your bulker config file is outdated, you need to re-initialize it: {}".format(e))
             sys.exit(1)
 
     if args.command == "run":
@@ -631,6 +655,9 @@ def main():
             parser.print_help(sys.stderr)
             _LOGGER.error("{} is not an available crate".format(e))
             sys.exit(1)
+        except MissingCrateError as e:
+            _LOGGER.error("Missing crate: {}".format(e))
+            sys.exit(1)        
 
     if args.command == "load":
         bulker_config.make_writable()
