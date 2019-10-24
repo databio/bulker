@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.4.0] -- Unreleased
+- Better error message if user tries to activate a crate with *no* crates loaded.
+
 ## [0.3.0] -- 2019-10-21
 - Renamed 'dockerargs' to 'docker_args' and 'singularityargs' to
   'singularity_args', which is more consistent with other attribute styles.
