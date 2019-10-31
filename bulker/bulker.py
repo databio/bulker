@@ -407,12 +407,16 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
                 "therefore not created: '{}'".format(cmd))
                 continue
             local_exe = find_executable(cmd)
-            populated_template = LOCAL_EXE_TEMPLATE.format(cmd=local_exe)
             path = os.path.join(crate_path, cmd)
             host_cmdlist.append(cmd)
-            with open(path, "w") as fh:
-                fh.write(populated_template)
-                os.chmod(path, 0o755)
+            os.symlink(local_exe, path)
+
+            # The old way: TODO: REMOVE THIS
+            if False:
+                populated_template = LOCAL_EXE_TEMPLATE.format(cmd=local_exe)
+                with open(path, "w") as fh:
+                    fh.write(populated_template)
+                    os.chmod(path, 0o755)
 
     cmd_count = len(cmdlist)
     host_cmd_count = len(host_cmdlist)
