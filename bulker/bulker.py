@@ -81,6 +81,14 @@ def build_argparser():
     banner = "%(prog)s - manage containerized executables"
     additional_description = "\nhttps://bulker.databio.org"
 
+    subparser_messages = {
+        "init": "Initialize a new bulker config file",
+        "list": "List available bulker crates",
+        "load": "Load a crate from a manifest",
+        "activate": "Activate a crate by adding it to PATH",
+        "run": "Run a command in a crate"
+    }
+
     parser = _VersionInHelpParser(
             description=banner,
             epilog=additional_description)
@@ -90,19 +98,17 @@ def build_argparser():
             action="version",
             version="%(prog)s {v}".format(v=__version__))
 
+    parser.add_argument(
+            "--commands",
+            action="version",
+            version="{}".format(" ".join(subparser_messages.keys())))
+
     subparsers = parser.add_subparsers(dest="command") 
 
     def add_subparser(cmd, description):
         return subparsers.add_parser(
             cmd, description=description, help=description)
 
-    subparser_messages = {
-        "init": "Initialize a new bulker config file",
-        "list": "List available bulker crates",
-        "load": "Load a crate from a manifest",
-        "activate": "Activate a crate by adding it to PATH",
-        "run": "Run a command in a crate"
-    }
 
     sps = {}
     for cmd, desc in subparser_messages.items():
@@ -149,6 +155,10 @@ def build_argparser():
     sps["activate"].add_argument(
             "-e", "--echo", action='store_true', default=False,
             help="Echo command instead of running it.")
+
+    sps["list"].add_argument(
+            "-s", "--simple", action='store_true', default=False,
+            help="Echo only crate registry paths, not local file paths.")
 
     return parser
 
@@ -324,21 +334,21 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
             copy_tree(imp_crate_path, crate_path)
 
     # should put this in a function
-    def host_tool_specific_args(bcfg, pkg):
-        _LOGGER.debug(pkg)
+    def host_tool_specific_args(bcfg, pkg, hosttool_arg_key):
+        _LOGGER.debug(pkg, hosttool_arg_key)
         # Here we're parsing the *image*, not the crate registry path.
         imvars = parse_registry_path_image(pkg['docker_image'])
         _LOGGER.debug(imvars)
         try:
             amap = bcfg.bulker.tool_args[imvars['namespace']][imvars['image']]
             if imvars['tag'] != 'default' and hasattr(amap, imvars['tag']):
-                string = amap[imvars['tag']].docker_args
+                string = amap[imvars['tag']][hosttool_arg_key]
             else:
-                string = amap.default.docker_args
+                string = amap.default[hosttool_arg_key]
             _LOGGER.debug(string)
             return string
         except:
-            _LOGGER.debug("None found.")
+            _LOGGER.debug("No host/tool args found.")
             return ""
 
     cmdlist = []
@@ -370,11 +380,14 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
             cmdlist.append(command)
 
             # Add any host-specific tool-specific args
-            hts = host_tool_specific_args(bcfg, pkg)
-            if hasattr(pkg, "docker_args"):
-                pkg.docker_args += " " + hts
+            hosttool_arg_key = "{engine}_args".format(engine=bcfg.bulker.container_engine)
+            hts = host_tool_specific_args(bcfg, pkg, hosttool_arg_key)
+            _LOGGER.debug("Adding host-tool args: {}".format(hts))
+            if hasattr(pkg, hosttool_arg_key):
+                pkg[hosttool_arg_key] += " " + hts
             else:
-                pkg.docker_args = hts
+                pkg[hosttool_arg_key] = hts
+                
 
             with open(path, "w") as fh:
                 fh.write(exe_jinja2_template.render(pkg=pkg))
@@ -613,25 +626,32 @@ def main():
         sys.exit(0)      
 
     bulkercfg = select_bulker_config(args.config)
-    _LOGGER.info("Bulker config: {}".format(bulkercfg))
     bulker_config = yacman.YacAttMap(filepath=bulkercfg, writable=False)
 
 
     if args.command == "list":
         # Output header via logger and content via print so the user can
         # redirect the list from stdout if desired without the header as clutter
-        _LOGGER.info("Available crates:")
+
+        if args.simple:
+            fmt = "{namespace}/{crate}:{tag}"
+        else:
+            _LOGGER.info("Available crates:")
+            fmt = "{namespace}/{crate}:{tag} -- {path}"
+
         if bulker_config.bulker.crates:
             for namespace, crates in bulker_config.bulker.crates.items():
                 for crate, tags in crates.items():
                     for tag, path in tags.items():
-                        print("{}/{}:{} -- {}".format(namespace, crate, tag, path))
+                        print(fmt.format(namespace=namespace, crate=crate, 
+                                         tag=tag, path=path))
         else:
             _LOGGER.info("No crates available. Use 'bulker load' to load a crate.")
         sys.exit(1)
 
     # For all remaining commands we need a crate identifier
 
+    _LOGGER.info("Bulker config: {}".format(bulkercfg))
     if args.command == "activate":
         try:
             cratelist = parse_registry_paths(args.crate_registry_paths,
