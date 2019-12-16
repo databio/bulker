@@ -3,6 +3,12 @@
 ## [0.4.0] -- Unreleased
 - Better error message if user tries to activate a crate with *no* crates loaded.
 - Uses default shell by default, and can be specified with the `shell_path` in config.
+- Singularity will now automatically pull new images without requiring `-b` on load
+- Added new attributes to disable user or network maps (`no_user` and `no_network`).
+- Provides a more informative error message if you try to activate without first loading a crate.
+- Revamped the templates to fix a few small convenience issues
+- Switch to using symlinks instead of wrapper scripts for host executables
+- require latest yacman
 
 ## [0.3.0] -- 2019-10-21
 - Renamed 'dockerargs' to 'docker_args' and 'singularityargs' to
