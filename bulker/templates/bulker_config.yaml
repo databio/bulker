@@ -1,5 +1,5 @@
 bulker:
-  volumes: ['/tmp', '$HOME']
+  volumes: ['$HOME']
   envvars: ['DISPLAY']
   registry_url: http://hub.bulker.io/
   shell_path: ${SHELL}
