@@ -102,7 +102,7 @@ def test_nonconfig_load():
 
     bulker_load(manifest, cratevars, bulker_config, exe_template_jinja,
     shell_template_jinja, force=True)
-    bulker_config.unlock()
+    bulker_config.make_readonly()
 
     cratelist = parse_registry_paths("bulker/demo")
     bulker_activate(bulker_config, cratelist, echo=True, strict=False)

@@ -1,7 +1,8 @@
 bulker:
-  volumes: ['/tmp', '$HOME']
+  volumes: ['$HOME']
   envvars: ['DISPLAY']
   registry_url: http://hub.bulker.io/
+  shell_path: ${SHELL}
   default_crate_folder: ${HOME}/bulker_crates
   singularity_image_folder: ${HOME}/simages
   container_engine: docker
