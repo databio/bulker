@@ -471,6 +471,12 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
         manifests?
     """
     # activating is as simple as adding a crate folder to the PATH env var.
+
+    if hasattr(bulker_config.bulker, "shell_path"):
+        shellpath = os.path.expandvars(bulker_config.bulker.shell_path)
+    else:
+        shellpath = "/bin/bash"
+
     newpath = get_new_PATH(bulker_config, cratelist, strict)
     _LOGGER.debug("Newpath: {}".format(newpath))
     if echo:
@@ -478,7 +484,7 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
     else:
         os.environ["PATH"] = newpath
         # os.system("bash")
-        os.execlp("/bin/bash", "bulker")
+        os.execlp(shellpath, "bulker")
         os._exit(-1)
 
 def get_local_path(bulker_config, cratevars):
