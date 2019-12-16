@@ -1,4 +1,4 @@
-# Tips
+# Tips and FAQ
 
 ## How can I prevent `bulker activate` from creating a new shell?
 
@@ -16,3 +16,8 @@ bulker-activate() {
 ```
 
 Restart your shell, and from now on use `bulker-activate` instead of `bulker activate`.
+
+## Help! Bulker can't find my config file.
+
+If bulker is giving an error like "No config found in env var: BULKERCFG", this means that the value of $BULKERCFG is not pointing to a file. Make sure you use `export` when defining that shell variable so that it is available to the bulker subprocess. If you don't, you may be able to `echo $BULKERCFG`, but if the value is not exported in the shell, bulker will not be able to read it.
+
