@@ -2,6 +2,7 @@
 
 ## [0.4.0] -- Unreleased
 - Better error message if user tries to activate a crate with *no* crates loaded.
+- Uses default shell by default, and can be specified with the `shell_path` in config.
 
 ## [0.3.0] -- 2019-10-21
 - Renamed 'dockerargs' to 'docker_args' and 'singularityargs' to
