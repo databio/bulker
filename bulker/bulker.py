@@ -475,7 +475,12 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
     if hasattr(bulker_config.bulker, "shell_path"):
         shellpath = os.path.expandvars(bulker_config.bulker.shell_path)
     else:
-        shellpath = "/bin/bash"
+        shellpath = os.path.expandvars("$SHELL")
+
+    if not is_command_callable(shellpath):
+        bashpath = "/bin/bash"
+        _LOGGER.warning("Specified shell is not callable: '{}'. Using {}.".format(shellpath, bashpath))
+        shellpath = bashpath
 
     newpath = get_new_PATH(bulker_config, cratelist, strict)
     _LOGGER.debug("Newpath: {}".format(newpath))
