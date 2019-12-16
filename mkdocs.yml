@@ -21,6 +21,7 @@ nav:
     - Host- and tool-specific settings: settings.md
     - Use a bulker registry: registry.md
     - Use images with entrypoints: entrypoint.md
+    - Disable user or network map: advanced_templates.md
   - Reference:
     - Tips: tips.md
     - Support: https://github.com/databio/bulker/issues
