@@ -483,13 +483,19 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
         shellpath = bashpath
 
     newpath = get_new_PATH(bulker_config, cratelist, strict)
+    name = "{namespace}/{crate}".format(
+        namespace=cratelist[-1]["namespace"],
+        crate=cratelist[-1]["crate"])
+    newPS1 = "\"{}\xe2\x86\x92 $PS1\"".format(name)
     _LOGGER.debug("Newpath: {}".format(newpath))
     if echo:
         print("export PATH={}".format(newpath))
+        print("export PS1={}".format(newPS1))
     else:
         os.environ["PATH"] = newpath
+        os.environ["PS1"] = newPS1  # Doesn't work for some reason...
         # os.system("bash")
-        os.execlp(shellpath, "bulker")
+        os.execlp(shellpath, shellpath)
         os._exit(-1)
 
 def get_local_path(bulker_config, cratevars):
