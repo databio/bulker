@@ -488,29 +488,65 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
         if os.path.basename(shellpath) == "bash":
             shell_list = [shellpath, shellpath, "--noprofile", "--norc"]
         elif os.path.basename(shellpath) == "zsh":
-            shell_list = [shellpath, shellpath, "--noprofile", "--no-rcs"]
+            shell_list = [shellpath, shellpath, "--no-rcs"]
         else:
             bashpath = "/bin/bash"
             _LOGGER.warning("In --strict mode, shell must be bash or zsh. Specified shell was: '{}'. Using {}.".format(shellpath, bashpath))
             shell_list = [bashpath, bashpath, "--noprofile", "--norc"]
 
-
+           
     newpath = get_new_PATH(bulker_config, cratelist, strict)
     name = "{namespace}/{crate}".format(
         namespace=cratelist[-1]["namespace"],
         crate=cratelist[-1]["crate"])
     _LOGGER.debug("Newpath: {}".format(newpath))
-    if echo:
-        newPS1 = os.path.expandvars("\"{}\xe2\x86\x92 $PS1\"").format(name)
-        print("export PATH={}".format(newpath))
-        print("export PS1={}".format(newPS1))
+    if hasattr(bulker_config.bulker, "shell_prompt"):
+        ps1 = bulker_config.bulker.shell_prompt
     else:
-        newPS1 = os.path.expandvars("{}\xe2\x86\x92 ").format(name)
+        ps1 = "\\u@\\b:\\w\\a\\$ "
+        # With color:
+        ps1 = "\\[\\033[01;93m\\]\\b▣\\[\\033[00m\\] \\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "
+    
+    # \b is our bulker-specific code that we populate with the crate
+    # registry path
+    ps1 = ps1.replace("\\b", name)
+    _LOGGER.debug(ps1)
+    # shell_prompt: '\u@\b:\w\a\$ '
+    # newPS1 = "\\u@{}:\\b\\w\\a\\$ ".format(name)
+    newPS1 = ps1
+
+    if echo:
+        # newPS1 = os.path.expandvars("\"{}⯈$PS1\"").format(name)
+        print("export PATH={}".format(newpath))
+        print("export PS1=\"{}\"".format(newPS1))
+    else:
         os.environ["PATH"] = newpath
         os.environ["PS1"] = newPS1  # Doesn't work for some reason...
         # os.system("bash")
-        _LOGGER.debug(shell_list)
-        os.execlp(*shell_list)
+        _LOGGER.debug("Shell list: {}". format(shell_list))
+        # The 'v' means 'pass a variable with a list of args' vs. 'l' which is 
+        # a list of separate args.
+        # The 'e' means add the 'env' to replace any environment variables
+        # os.system('history -a')
+        if strict:
+            # {"PATH": newpath, "PS1": newPS1}
+            # new_env = {"PATH": newpath, "PS1": newPS1}
+            new_env = {k: os.environ.get(k, "") for k in bulker_config.bulker.envvars}
+
+            new_env["PATH"] = newpath
+            new_env["PS1"] = newPS1
+            new_env["BULKERCRATE"] = name
+            os.execve(shell_list[0], shell_list[1:], env=new_env)
+        else:
+            new_env = os.environ
+            new_env["PATH"] = newpath
+            new_env["PS1"] = newPS1
+            new_env["BULKERCRATE"] = name
+            # We can't change the prompt if we're not controlling the bashrc,
+            # because it's likely to get overwritten by the user's bashrc.
+            # shell_list = [shellpath, shellpath, "--noprofile", "--norc"]
+            os.execve(shell_list[0], shell_list[1:], env=new_env)
+            os.execl(*shell_list)
 
         # import subprocess
         # sp = subprocess.Popen([shellpath, "--noprofile", "--norc"])
