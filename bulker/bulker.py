@@ -474,28 +474,48 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
 
     if hasattr(bulker_config.bulker, "shell_path"):
         shellpath = os.path.expandvars(bulker_config.bulker.shell_path)
+        shell_list = [shellpath, shellpath]
     else:
         shellpath = os.path.expandvars("$SHELL")
+        shell_list = [shellpath, shellpath]
 
     if not is_command_callable(shellpath):
         bashpath = "/bin/bash"
         _LOGGER.warning("Specified shell is not callable: '{}'. Using {}.".format(shellpath, bashpath))
-        shellpath = bashpath
+        shell_list = [bashpath, bashpath]
+
+    if strict:
+        if os.path.basename(shellpath) == "bash":
+            shell_list = [shellpath, shellpath, "--noprofile", "--norc"]
+        elif os.path.basename(shellpath) == "zsh":
+            shell_list = [shellpath, shellpath, "--noprofile", "--no-rcs"]
+        else:
+            bashpath = "/bin/bash"
+            _LOGGER.warning("In --strict mode, shell must be bash or zsh. Specified shell was: '{}'. Using {}.".format(shellpath, bashpath))
+            shell_list = [bashpath, bashpath, "--noprofile", "--norc"]
+
 
     newpath = get_new_PATH(bulker_config, cratelist, strict)
     name = "{namespace}/{crate}".format(
         namespace=cratelist[-1]["namespace"],
         crate=cratelist[-1]["crate"])
-    newPS1 = "\"{}\xe2\x86\x92 $PS1\"".format(name)
     _LOGGER.debug("Newpath: {}".format(newpath))
     if echo:
+        newPS1 = os.path.expandvars("\"{}\xe2\x86\x92 $PS1\"").format(name)
         print("export PATH={}".format(newpath))
         print("export PS1={}".format(newPS1))
     else:
+        newPS1 = os.path.expandvars("{}\xe2\x86\x92 ").format(name)
         os.environ["PATH"] = newpath
         os.environ["PS1"] = newPS1  # Doesn't work for some reason...
         # os.system("bash")
-        os.execlp(shellpath, shellpath)
+        _LOGGER.debug(shell_list)
+        os.execlp(*shell_list)
+
+        # import subprocess
+        # sp = subprocess.Popen([shellpath, "--noprofile", "--norc"])
+        # sp.communicate()
+        print("Exiting bulker multainer")
         os._exit(-1)
 
 def get_local_path(bulker_config, cratevars):
