@@ -1,3 +1,5 @@
 include bulker/templates/*
+include bulker/templates/zsh_start/*
+include bulker/templates/zsh_start_strict/*
 include requirements/*
 include README.md

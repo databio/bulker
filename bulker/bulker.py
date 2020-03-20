@@ -472,87 +472,112 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
     """
     # activating is as simple as adding a crate folder to the PATH env var.
 
+    new_env = os.environ
+
+
     if hasattr(bulker_config.bulker, "shell_path"):
         shellpath = os.path.expandvars(bulker_config.bulker.shell_path)
-        shell_list = [shellpath, shellpath]
     else:
         shellpath = os.path.expandvars("$SHELL")
-        shell_list = [shellpath, shellpath]
 
     if not is_command_callable(shellpath):
         bashpath = "/bin/bash"
         _LOGGER.warning("Specified shell is not callable: '{}'. Using {}.".format(shellpath, bashpath))
         shell_list = [bashpath, bashpath]
 
-    if strict:
+
+    if hasattr(bulker_config.bulker, "shell_rc"):
+        shell_rc = os.path.expandvars(bulker_config.bulker.shell_rc)
+    else:
         if os.path.basename(shellpath) == "bash":
-            shell_list = [shellpath, shellpath, "--noprofile", "--norc"]
+            shell_rc = "$HOME/.bashrc"
         elif os.path.basename(shellpath) == "zsh":
-            shell_list = [shellpath, shellpath, "--no-rcs"]
+            shell_rc = "$HOME/.zshrc"
         else:
-            bashpath = "/bin/bash"
-            _LOGGER.warning("In --strict mode, shell must be bash or zsh. Specified shell was: '{}'. Using {}.".format(shellpath, bashpath))
-            shell_list = [bashpath, bashpath, "--noprofile", "--norc"]
+            _LOGGER.warning("No shell RC specified shell")
+
+    if os.path.basename(shellpath) == "bash":
+        shell_list = [shellpath, shellpath, "--noprofile"]
+    elif os.path.basename(shellpath) == "zsh":
+        shell_list = [shellpath, shellpath]
+    else:
+        bashpath = "/bin/bash"
+        _LOGGER.warning("Shell must be bash or zsh. Specified shell was: '{}'. Using {}.".format(shellpath, bashpath))
+        shell_list = [bashpath, bashpath, "--noprofile"]
 
            
     newpath = get_new_PATH(bulker_config, cratelist, strict)
+
+    # We can use lots of them. use the last one
     name = "{namespace}/{crate}".format(
         namespace=cratelist[-1]["namespace"],
         crate=cratelist[-1]["crate"])
+
+
     _LOGGER.debug("Newpath: {}".format(newpath))
+
+
     if hasattr(bulker_config.bulker, "shell_prompt"):
         ps1 = bulker_config.bulker.shell_prompt
     else:
         ps1 = "\\u@\\b:\\w\\a\\$ "
         # With color:
         ps1 = "\\[\\033[01;93m\\]\\b▣\\[\\033[00m\\] \\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "
+        # ps1 = """\[\033[01;93m\]\b▣\[\033[00m\] \[\033[01;34m\]\w\[\033[00m\]\$ """
     
     # \b is our bulker-specific code that we populate with the crate
     # registry path
-    ps1 = ps1.replace("\\b", name)
+    ps1 = ps1.replace("\\b", name)  # for bash
+    ps1 = ps1.replace("%b", name)  # for zsh
     _LOGGER.debug(ps1)
-    # shell_prompt: '\u@\b:\w\a\$ '
-    # newPS1 = "\\u@{}:\\b\\w\\a\\$ ".format(name)
-    newPS1 = ps1
 
     if echo:
         # newPS1 = os.path.expandvars("\"{}⯈$PS1\"").format(name)
         print("export PATH={}".format(newpath))
-        print("export PS1=\"{}\"".format(newPS1))
+        print("export PS1=\"{}\"".format(ps1))
     else:
-        os.environ["PATH"] = newpath
-        os.environ["PS1"] = newPS1  # Doesn't work for some reason...
-        # os.system("bash")
         _LOGGER.debug("Shell list: {}". format(shell_list))
-        # The 'v' means 'pass a variable with a list of args' vs. 'l' which is 
+
+        new_env["BULKERCRATE"] = name
+        new_env["BULKERPATH"] = newpath
+        new_env["BULKERPROMPT"] = ps1
+        new_env["BULKERSHELLRC"] = shell_rc
+
+        if strict:
+            for k in bulker_config.bulker.envvars:
+                new_env[k] = os.environ.get(k, "")
+        
+        if os.path.basename(shellpath) == "bash":    
+            if strict:
+                rcfile = mkabs(bulker_config.bulker.rcfile_strict,
+                                 os.path.dirname(bulker_config._file_path))
+            else:
+                rcfile = mkabs(bulker_config.bulker.rcfile,
+                             os.path.dirname(bulker_config._file_path))
+
+            shell_list.append("--rcfile")
+            shell_list.append(rcfile)
+            _LOGGER.info("rcfile: {}".format(rcfile))
+            _LOGGER.info(shell_list)
+
+        if os.path.basename(shellpath) == "zsh":
+            if strict:
+                rcfolder = mkabs(os.path.join(
+                    os.path.dirname(bulker_config.bulker.rcfile_strict),
+                    "zsh_start_strict"), os.path.dirname(bulker_config._file_path))     
+            else:
+                rcfolder = mkabs(os.path.join(
+                    os.path.dirname(bulker_config.bulker.rcfile_strict),
+                    "zsh_start"), os.path.dirname(bulker_config._file_path))   
+
+            new_env["ZDOTDIR"] = rcfolder
+            _LOGGER.info("ZDOTDIR: {}".format(new_env["ZDOTDIR"]))
+
+        os.execve(shell_list[0], shell_list[1:], env=new_env)
+
+         # The 'v' means 'pass a variable with a list of args' vs. 'l' which is 
         # a list of separate args.
         # The 'e' means add the 'env' to replace any environment variables
-        # os.system('history -a')
-        if strict:
-            # {"PATH": newpath, "PS1": newPS1}
-            # new_env = {"PATH": newpath, "PS1": newPS1}
-            new_env = {k: os.environ.get(k, "") for k in bulker_config.bulker.envvars}
-
-            new_env["PATH"] = newpath
-            new_env["PS1"] = newPS1
-            new_env["BULKERCRATE"] = name
-            os.execve(shell_list[0], shell_list[1:], env=new_env)
-        else:
-            new_env = os.environ
-            new_env["PATH"] = newpath
-            new_env["PS1"] = newPS1
-            new_env["BULKERCRATE"] = name
-            # We can't change the prompt if we're not controlling the bashrc,
-            # because it's likely to get overwritten by the user's bashrc.
-            # shell_list = [shellpath, shellpath, "--noprofile", "--norc"]
-            os.execve(shell_list[0], shell_list[1:], env=new_env)
-            os.execl(*shell_list)
-
-        # import subprocess
-        # sp = subprocess.Popen([shellpath, "--noprofile", "--norc"])
-        # sp.communicate()
-        print("Exiting bulker multainer")
-        os._exit(-1)
 
 def get_local_path(bulker_config, cratevars):
     """
@@ -730,7 +755,7 @@ def main():
             cratelist = parse_registry_paths(args.crate_registry_paths,
                                              bulker_config.bulker.default_namespace)
             _LOGGER.debug(cratelist)
-            _LOGGER.info("Activating bulker crate: {}\n".format(args.crate_registry_paths))
+            _LOGGER.info("Activating bulker crate: {}{}".format(args.crate_registry_paths, " (Strict)" if args.strict else ""))
             bulker_activate(bulker_config, cratelist, echo=args.echo, strict=args.strict)
         except KeyError as e:
             parser.print_help(sys.stderr)
