@@ -557,8 +557,8 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
 
             shell_list.append("--rcfile")
             shell_list.append(rcfile)
-            _LOGGER.info("rcfile: {}".format(rcfile))
-            _LOGGER.info(shell_list)
+            _LOGGER.debug("rcfile: {}".format(rcfile))
+            _LOGGER.debug(shell_list)
 
         if os.path.basename(shellpath) == "zsh":
             if strict:
@@ -571,7 +571,7 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
                     "zsh_start"), os.path.dirname(bulker_config._file_path))   
 
             new_env["ZDOTDIR"] = rcfolder
-            _LOGGER.info("ZDOTDIR: {}".format(new_env["ZDOTDIR"]))
+            _LOGGER.debug("ZDOTDIR: {}".format(new_env["ZDOTDIR"]))
 
         os.execve(shell_list[0], shell_list[1:], env=new_env)
 
