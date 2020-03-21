@@ -531,7 +531,6 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
     _LOGGER.debug(ps1)
 
     if echo:
-        # newPS1 = os.path.expandvars("\"{}⯈$PS1\"").format(name)
         print("export PATH={}".format(newpath))
         print("export PS1=\"{}\"".format(ps1))
     else:
