@@ -522,7 +522,7 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
     else:
         ps1 = "\\u@\\b:\\w\\a\\$ "
         # With color:
-        ps1 = "\\[\\033[01;93m\\]\\b▣\\[\\033[00m\\] \\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "
+        ps1 = "\\[\\033[01;93m\\]\\b|\\[\\033[00m\\] \\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "
         # ps1 = """\[\033[01;93m\]\b▣\[\033[00m\] \[\033[01;34m\]\w\[\033[00m\]\$ """
     
     # \b is our bulker-specific code that we populate with the crate
