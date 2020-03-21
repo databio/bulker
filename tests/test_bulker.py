@@ -76,6 +76,10 @@ def test_nonconfig_load():
     try:
         os.mkdir(DUMMY_CFG_FOLDER)
         os.mkdir(DUMMY_CFG_TEMPLATES)
+        # TODO: Clean up these folders
+        # Why do I have to pre-create these anyway? I guess to test init?
+        os.mkdir(os.path.join(DUMMY_CFG_TEMPLATES, "zsh_start"))
+        os.mkdir(os.path.join(DUMMY_CFG_TEMPLATES, "zsh_start_strict"))        
     except:
         pass
 
