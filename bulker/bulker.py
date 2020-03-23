@@ -863,7 +863,7 @@ def main():
                                   cratevars['tag'])
         if not os.path.isabs(crate_path):
             crate_path = os.path.join(os.path.dirname(bcfg._file_path), crate_path)
-        print("Currently loaded crate path: {}".format(crate_path))
+        print("Crate path: {}".format(crate_path))
         import glob
         filenames = glob.glob(os.path.join(crate_path, "*"))
         available_commands = [x for x in [os.path.basename(x) for x in filenames] if x[0] != "_"]
