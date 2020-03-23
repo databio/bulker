@@ -852,7 +852,7 @@ def main():
         manifest_name = cratevars['crate']
 
         
-        print("Bulker manifest: {}".format(manifest_name))
+        print("Bulker manifest: {}".format(args.crate_registry_paths))
         crate_path = os.path.join(bulker_config.bulker.default_crate_folder,
                                   cratevars['namespace'],
                                   manifest_name,
