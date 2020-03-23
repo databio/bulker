@@ -83,6 +83,7 @@ def build_argparser():
 
     subparser_messages = {
         "init": "Initialize a new bulker config file",
+        "inspect": "View name and list of commands for a crate",
         "list": "List available bulker crates",
         "load": "Load a crate from a manifest",
         "activate": "Activate a crate by adding it to PATH",
@@ -127,9 +128,19 @@ def build_argparser():
             help="One or more comma-separated registry path strings"
             "  that identify crates (e.g. bulker/demo:1.0.0)")
 
+    # optional for inspect
+    sps["inspect"].add_argument(
+            "crate_registry_paths", metavar="crate-registry-paths", type=str,
+            nargs="?", default=os.getenv("BULKERCRATE", ""),
+            help="One or more comma-separated registry path strings"
+            "  that identify crates (e.g. bulker/demo:1.0.0)")
+
+    for cmd in ["run", "activate"]:
         sps[cmd].add_argument(
             "-s", "--strict", action='store_true', default=False,
             help="Use strict environment (purges PATH of other commands)?")
+
+
 
     sps["load"].add_argument(
             "-f", "--manifest",
@@ -269,6 +280,11 @@ def mkdir(path, exist_ok=True):
     else:
         os.makedirs(path)
 
+def bulker_inspect(bcfg, manifest, cratevars, crate_path=None, 
+                build=False, force=False):
+
+
+    return x
 
 def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
                 shell_jinja2_template, crate_path=None, 
@@ -826,6 +842,32 @@ def main():
                     build=build_template_jinja,
                     force=args.force)
 
+    if args.command == "inspect":
+        if args.crate_registry_paths:
+            manifest, cratevars = load_remote_registry_path(bulker_config, 
+                                                        args.crate_registry_paths,
+                                                        None)
+            manifest_name = cratevars['crate']
+        else:
+            manifest_name = os.getenv("BULKERCRATE", "")
+            print("Currently loaded bulker manifest: {}".format(manifest_name))
+            if manifest_name == "":
+                _LOGGER.error("No active create. Inspect requires a provided crate, or a currently active create.")
+                sys.exit(1)
+        
+        _LOGGER.debug(manifest_name)
+
+        crate_path = os.path.join(bulker_config.bulker.default_crate_folder,
+                                  cratevars['namespace'],
+                                  manifest_name,
+                                  cratevars['tag'])
+        if not os.path.isabs(crate_path):
+            crate_path = os.path.join(os.path.dirname(bcfg._file_path), crate_path)
+        print("Currently loaded crate path: {}".format(crate_path))
+        import glob
+        filenames = glob.glob(os.path.join(crate_path, "*"))
+        available_commands = [x for x in [os.path.basename(x) for x in filenames] if x[0] != "_"]
+        print("Available commands: {}".format(available_commands))
 
 if __name__ == '__main__':
     try:
