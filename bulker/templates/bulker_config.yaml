@@ -6,7 +6,6 @@ bulker:
   shell_rc: ${HOME}/.bashrc
   rcfile: templates/start.sh
   rcfile_strict: templates/start_strict.sh  
-  shell_prompt: \[\033[01;93m\]\b▣\[\033[00m\] \[\033[01;34m\]\w\[\033[00m\]\$ 
   default_crate_folder: ${HOME}/bulker_crates
   singularity_image_folder: ${HOME}/simages
   container_engine: docker
