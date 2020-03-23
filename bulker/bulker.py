@@ -664,7 +664,7 @@ def load_remote_registry_path(bulker_config, registry_path, filepath=None):
         sys.exit(1)
 
     if is_url(filepath):
-        _LOGGER.info("Got URL: {}".format(filepath))
+        _LOGGER.debug("Got URL: {}".format(filepath))
         try: #python3
             from urllib.request import urlopen
             from urllib.error import HTTPError
@@ -843,20 +843,16 @@ def main():
                     force=args.force)
 
     if args.command == "inspect":
-        if args.crate_registry_paths:
-            manifest, cratevars = load_remote_registry_path(bulker_config, 
-                                                        args.crate_registry_paths,
-                                                        None)
-            manifest_name = cratevars['crate']
-        else:
-            manifest_name = os.getenv("BULKERCRATE", "")
-            print("Currently loaded bulker manifest: {}".format(manifest_name))
-            if manifest_name == "":
-                _LOGGER.error("No active create. Inspect requires a provided crate, or a currently active create.")
-                sys.exit(1)
-        
-        _LOGGER.debug(manifest_name)
+        if args.crate_registry_paths == "":
+            _LOGGER.error("No active create. Inspect requires a provided crate, or a currently active create.")
+            sys.exit(1)
+        manifest, cratevars = load_remote_registry_path(bulker_config, 
+                                                    args.crate_registry_paths,
+                                                    None)
+        manifest_name = cratevars['crate']
 
+        
+        print("Bulker manifest: {}".format(manifest_name))
         crate_path = os.path.join(bulker_config.bulker.default_crate_folder,
                                   cratevars['namespace'],
                                   manifest_name,
