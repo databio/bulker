@@ -806,22 +806,32 @@ def main():
 
         exe_template = mkabs(bulker_config.bulker.executable_template,
                              os.path.dirname(bulker_config._file_path))
+        build_template = mkabs(bulker_config.bulker.build_template, 
+                               os.path.dirname(bulker_config._file_path))        
         try:
             shell_template = mkabs(bulker_config.bulker.shell_template,
                              os.path.dirname(bulker_config._file_path))        
         except AttributeError:
             _LOGGER.error("You need to re-initialize your bulker config or add a 'shell_template' attribute.")
             sys.exit(1)
-        build_template = mkabs(bulker_config.bulker.build_template, 
-                               os.path.dirname(bulker_config._file_path))
 
 
-        _LOGGER.debug("Executable template: {}".format(exe_template))
-        assert(os.path.exists(exe_template))
+        try:
+            assert(os.path.exists(exe_template))
+        except AssertionError:
+            _LOGGER.error("Bulker config points to a missing executable template: {}".format(exe_template))
+            sys.exit(1)
+
         with open(exe_template, 'r') as f:
         # with open(DOCKER_TEMPLATE, 'r') as f:
             contents = f.read()
             exe_template_jinja = jinja2.Template(contents)
+
+        try:
+            assert(os.path.exists(shell_template))
+        except AssertionError:
+            _LOGGER.error("Bulker config points to a missing shell template: {}".format(shell_template))
+            sys.exit(1)
 
         with open(shell_template, 'r') as f:
         # with open(DOCKER_TEMPLATE, 'r') as f:
@@ -829,7 +839,15 @@ def main():
             shell_template_jinja = jinja2.Template(contents)
 
 
+
+
         if args.build:
+            try:
+                assert(os.path.exists(build_template))
+            except AssertionError:
+                _LOGGER.error("Bulker config points to a missing build template: {}".format(build_template))
+                sys.exit(1)
+
             _LOGGER.info("Building images with template: {}".format(build_template))
             with open(build_template, 'r') as f:
                 contents = f.read()
