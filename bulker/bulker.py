@@ -317,8 +317,8 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
             _LOGGER.warning("Removing all executables in: {}".format(crate_path))
             try:
                 shutil.rmtree(crate_path)
-            except FileNotFoundError:
-                _LOGGER.error("Not found, crate moved. Remove it manually.")
+            except:
+                _LOGGER.error("Error removing crate at {}. Remove it manually.".format(crate_path))
     else:
         bcfg.bulker.crates[cratevars['namespace']][cratevars['crate']][str(cratevars['tag'])] = crate_path
 
