@@ -539,7 +539,7 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
         if os.path.basename(shellpath) == "bash":
             ps1 = "\\u@\\b:\\w\\a\\$ "
             # With color:
-            ps1 = "\\[\\033[01;93m\\]\\b|\\[\\033[00m\\] \\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "
+            ps1 = "\\[\\033[01;93m\\]\\b|\\[\\033[00m\\]\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "
         elif os.path.basename(shellpath) == "zsh":
             ps1 = "%F{226}%b|%f%F{blue}%~%f %# "
         else:
