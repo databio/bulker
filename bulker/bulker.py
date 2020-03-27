@@ -536,9 +536,14 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
     if hasattr(bulker_config.bulker, "shell_prompt"):
         ps1 = bulker_config.bulker.shell_prompt
     else:
-        ps1 = "\\u@\\b:\\w\\a\\$ "
-        # With color:
-        ps1 = "\\[\\033[01;93m\\]\\b|\\[\\033[00m\\] \\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "
+        if os.path.basename(shellpath) == "bash":
+            ps1 = "\\u@\\b:\\w\\a\\$ "
+            # With color:
+            ps1 = "\\[\\033[01;93m\\]\\b|\\[\\033[00m\\] \\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "
+        elif os.path.basename(shellpath) == "zsh":
+            ps1 = "%F{226}%b|%f%F{blue}%~%f %# "
+        else:
+            _LOGGER.warning("No built-in custom prompt for shells other than bash or zsh")        
     
     # \b is our bulker-specific code that we populate with the crate
     # registry path
