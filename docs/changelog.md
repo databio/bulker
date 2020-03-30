@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.0] -- 2020-03-31
+- Added bulker shell prompts for both normal and strict modes
+- Added custom shell prompts (experimental!)
+- Added `bulker inspect`
+- Added env variables $BULKERCRATE, BULKERPROMPT, and BULKERSHELL.
+- Changed the behavior of normal mode to set bulker path *after* calling the  rcfile.
+- Changed built-in singularity template to accommodate singularity version 3
+- Changed method for accommodating zshell.
+- Removed support for python 3.4
+
 ## [0.4.0] -- 2019-12-16
 - Better error message if user tries to activate a crate with *no* crates loaded.
 - Uses default shell by default, and can be specified with the `shell_path` in config.
