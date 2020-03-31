@@ -552,8 +552,12 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
     _LOGGER.debug(ps1)
 
     if echo:
-        print("export PATH={}".format(newpath))
+        print("export BULKERCRATE=\"{}\"".format(name))
+        print("export BULKERPATH=\"{}\"".format(newpath))
+        print("export BULKERPROMPT=\"{}\"".format(ps1))
+        print("export BULKERSHELLRC=\"{}\"".format(shell_rc))
         print("export PS1=\"{}\"".format(ps1))
+        print("export PATH={}".format(newpath))
     else:
         _LOGGER.debug("Shell list: {}". format(shell_list))
 
