@@ -16,6 +16,7 @@ nav:
   - How-to Guides:
     - Create strict environments: strict.md
     - Write a manifest: manifest.md
+    - Inspect a crate: inspect.md
     - Import crates: import.md
     - Start an exploratory shell: shell.md
     - Host- and tool-specific settings: settings.md

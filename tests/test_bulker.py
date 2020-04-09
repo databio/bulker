@@ -12,6 +12,7 @@ import shutil
 DUMMY_CFG_FOLDER = "bulker_temp"
 DUMMY_CFG_FILEPATH = os.path.join(DUMMY_CFG_FOLDER, "tmp.yaml")
 DUMMY_CFG_TEMPLATES = os.path.join(DUMMY_CFG_FOLDER, "templates")
+DUMMY_CFG_CRATE_SUBDIR = "crates"
 
 def test_yacman():
 
@@ -42,6 +43,10 @@ def test_bulker_init():
         shutil.rmtree(DUMMY_CFG_FOLDER)
         os.mkdir(DUMMY_CFG_FOLDER)
         os.mkdir(DUMMY_CFG_TEMPLATES)
+        # TODO: Clean up these folders
+        # Why do I have to pre-create these anyway? I guess to test init?
+        os.mkdir(os.path.join(DUMMY_CFG_TEMPLATES, "zsh_start"))
+        os.mkdir(os.path.join(DUMMY_CFG_TEMPLATES, "zsh_start_strict"))
     except:
         pass
 
@@ -72,19 +77,27 @@ def test_nonconfig_load():
     try:
         os.mkdir(DUMMY_CFG_FOLDER)
         os.mkdir(DUMMY_CFG_TEMPLATES)
+        # TODO: Clean up these folders
+        # Why do I have to pre-create these anyway? I guess to test init?
+        os.mkdir(os.path.join(DUMMY_CFG_TEMPLATES, "zsh_start"))
+        os.mkdir(os.path.join(DUMMY_CFG_TEMPLATES, "zsh_start_strict"))        
     except:
         pass
 
     bulker_init(DUMMY_CFG_FILEPATH, DEFAULT_CONFIG_FILEPATH, "docker")
     bulker_config = yacman.YacAttMap(filepath=DUMMY_CFG_FILEPATH)
 
-    manifest, cratevars = load_remote_registry_path(bulker_config, 
-                                                     "demo",
-                                                     None)
     # The 'load' command will write the new crate to the config file;
     # we don't want it to update the template config file, so make a dummy
     # filepath that we'll delete later.
     bulker_config.make_writable()
+    # for testing, use a local crate folder
+    bulker_config.bulker.default_crate_folder = DUMMY_CFG_CRATE_SUBDIR
+
+    print("Bulker config: {}".format(bulker_config))
+    manifest, cratevars = load_remote_registry_path(bulker_config, 
+                                                     "demo",
+                                                     None)
     manifest, cratevars = load_remote_registry_path(bulker_config, "demo", None)
     exe_template = mkabs(bulker_config.bulker.executable_template, os.path.dirname(bulker_config._file_path))
     shell_template = mkabs(bulker_config.bulker.shell_template,
@@ -102,12 +115,20 @@ def test_nonconfig_load():
 
     bulker_load(manifest, cratevars, bulker_config, exe_template_jinja,
     shell_template_jinja, force=True)
-    bulker_config.make_readonly()
+    # bulker_config.make_readonly()  # deprecated this line with yacman improvements?
 
     cratelist = parse_registry_paths("bulker/demo")
     bulker_activate(bulker_config, cratelist, echo=True, strict=False)
     bulker_activate(bulker_config, cratelist, echo=True, strict=True)
     # Can't really test activate if echo=False, since it replaces the current process...
+    print(cratelist)
+
+    # Test a reload with already-removed crate
+    crate_folder = os.path.join(bulker_config.bulker.default_crate_folder, "bulker/demo/default")
+    print("removing {}".format(crate_folder))
+    # shutil.rmtree(crate_folder)
+    bulker_load(manifest, cratevars, bulker_config, exe_template_jinja,
+    shell_template_jinja, force=True)
 
     del bulker_config
 

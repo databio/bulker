@@ -83,6 +83,7 @@ def build_argparser():
 
     subparser_messages = {
         "init": "Initialize a new bulker config file",
+        "inspect": "View name and list of commands for a crate",
         "list": "List available bulker crates",
         "load": "Load a crate from a manifest",
         "activate": "Activate a crate by adding it to PATH",
@@ -127,9 +128,19 @@ def build_argparser():
             help="One or more comma-separated registry path strings"
             "  that identify crates (e.g. bulker/demo:1.0.0)")
 
+    # optional for inspect
+    sps["inspect"].add_argument(
+            "crate_registry_paths", metavar="crate-registry-paths", type=str,
+            nargs="?", default=os.getenv("BULKERCRATE", ""),
+            help="One or more comma-separated registry path strings"
+            "  that identify crates (e.g. bulker/demo:1.0.0)")
+
+    for cmd in ["run", "activate"]:
         sps[cmd].add_argument(
             "-s", "--strict", action='store_true', default=False,
             help="Use strict environment (purges PATH of other commands)?")
+
+
 
     sps["load"].add_argument(
             "-f", "--manifest",
@@ -269,6 +280,11 @@ def mkdir(path, exist_ok=True):
     else:
         os.makedirs(path)
 
+def bulker_inspect(bcfg, manifest, cratevars, crate_path=None, 
+                build=False, force=False):
+
+
+    return x
 
 def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
                 shell_jinja2_template, crate_path=None, 
@@ -301,8 +317,8 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
             _LOGGER.warning("Removing all executables in: {}".format(crate_path))
             try:
                 shutil.rmtree(crate_path)
-            except FileNotFoundError:
-                _LOGGER.error("Not found, crate moved. Remove it manually.")
+            except:
+                _LOGGER.error("Error removing crate at {}. Did your crate path change? Remove it manually.".format(crate_path))
     else:
         bcfg.bulker.crates[cratevars['namespace']][cratevars['crate']][str(cratevars['tag'])] = crate_path
 
@@ -472,6 +488,9 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
     """
     # activating is as simple as adding a crate folder to the PATH env var.
 
+    new_env = os.environ
+
+
     if hasattr(bulker_config.bulker, "shell_path"):
         shellpath = os.path.expandvars(bulker_config.bulker.shell_path)
     else:
@@ -480,17 +499,108 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
     if not is_command_callable(shellpath):
         bashpath = "/bin/bash"
         _LOGGER.warning("Specified shell is not callable: '{}'. Using {}.".format(shellpath, bashpath))
-        shellpath = bashpath
+        shell_list = [bashpath, bashpath]
 
+
+    if hasattr(bulker_config.bulker, "shell_rc"):
+        shell_rc = os.path.expandvars(bulker_config.bulker.shell_rc)
+    else:
+        if os.path.basename(shellpath) == "bash":
+            shell_rc = "$HOME/.bashrc"
+        elif os.path.basename(shellpath) == "zsh":
+            shell_rc = "$HOME/.zshrc"
+        else:
+            _LOGGER.warning("No shell RC specified shell")
+
+    if os.path.basename(shellpath) == "bash":
+        shell_list = [shellpath, shellpath, "--noprofile"]
+    elif os.path.basename(shellpath) == "zsh":
+        shell_list = [shellpath, shellpath]
+    else:
+        bashpath = "/bin/bash"
+        _LOGGER.warning("Shell must be bash or zsh. Specified shell was: '{}'. Using {}.".format(shellpath, bashpath))
+        shell_list = [bashpath, bashpath, "--noprofile"]
+
+           
     newpath = get_new_PATH(bulker_config, cratelist, strict)
+
+    # We can use lots of them. use the last one
+    name = "{namespace}/{crate}".format(
+        namespace=cratelist[-1]["namespace"],
+        crate=cratelist[-1]["crate"])
+
+
     _LOGGER.debug("Newpath: {}".format(newpath))
+
+
+    if hasattr(bulker_config.bulker, "shell_prompt"):
+        ps1 = bulker_config.bulker.shell_prompt
+    else:
+        if os.path.basename(shellpath) == "bash":
+            ps1 = "\\u@\\b:\\w\\a\\$ "
+            # With color:
+            ps1 = "\\[\\033[01;93m\\]\\b|\\[\\033[00m\\]\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "
+        elif os.path.basename(shellpath) == "zsh":
+            ps1 = "%F{226}%b|%f%F{blue}%~%f %# "
+        else:
+            _LOGGER.warning("No built-in custom prompt for shells other than bash or zsh")        
+    
+    # \b is our bulker-specific code that we populate with the crate
+    # registry path
+    ps1 = ps1.replace("\\b", name)  # for bash
+    ps1 = ps1.replace("%b", name)  # for zsh
+    _LOGGER.debug(ps1)
+
     if echo:
+        print("export BULKERCRATE=\"{}\"".format(name))
+        print("export BULKERPATH=\"{}\"".format(newpath))
+        print("export BULKERPROMPT=\"{}\"".format(ps1))
+        print("export BULKERSHELLRC=\"{}\"".format(shell_rc))
+        print("export PS1=\"{}\"".format(ps1))
         print("export PATH={}".format(newpath))
     else:
-        os.environ["PATH"] = newpath
-        # os.system("bash")
-        os.execlp(shellpath, "bulker")
-        os._exit(-1)
+        _LOGGER.debug("Shell list: {}". format(shell_list))
+
+        new_env["BULKERCRATE"] = name
+        new_env["BULKERPATH"] = newpath
+        new_env["BULKERPROMPT"] = ps1
+        new_env["BULKERSHELLRC"] = shell_rc
+
+        if strict:
+            for k in bulker_config.bulker.envvars:
+                new_env[k] = os.environ.get(k, "")
+        
+        if os.path.basename(shellpath) == "bash":    
+            if strict:
+                rcfile = mkabs(bulker_config.bulker.rcfile_strict,
+                                 os.path.dirname(bulker_config._file_path))
+            else:
+                rcfile = mkabs(bulker_config.bulker.rcfile,
+                             os.path.dirname(bulker_config._file_path))
+
+            shell_list.append("--rcfile")
+            shell_list.append(rcfile)
+            _LOGGER.debug("rcfile: {}".format(rcfile))
+            _LOGGER.debug(shell_list)
+
+        if os.path.basename(shellpath) == "zsh":
+            if strict:
+                rcfolder = mkabs(os.path.join(
+                    os.path.dirname(bulker_config.bulker.rcfile_strict),
+                    "zsh_start_strict"), os.path.dirname(bulker_config._file_path))     
+            else:
+                rcfolder = mkabs(os.path.join(
+                    os.path.dirname(bulker_config.bulker.rcfile_strict),
+                    "zsh_start"), os.path.dirname(bulker_config._file_path))   
+
+            new_env["ZDOTDIR"] = rcfolder
+            _LOGGER.debug("ZDOTDIR: {}".format(new_env["ZDOTDIR"]))
+
+        os.execve(shell_list[0], shell_list[1:], env=new_env)
+
+         # The 'v' means 'pass a variable with a list of args' vs. 'l' which is 
+        # a list of separate args.
+        # The 'e' means add the 'env' to replace any environment variables
 
 def get_local_path(bulker_config, cratevars):
     """
@@ -563,7 +673,7 @@ def load_remote_registry_path(bulker_config, registry_path, filepath=None):
         sys.exit(1)
 
     if is_url(filepath):
-        _LOGGER.info("Got URL: {}".format(filepath))
+        _LOGGER.debug("Got URL: {}".format(filepath))
         try: #python3
             from urllib.request import urlopen
             from urllib.error import HTTPError
@@ -668,7 +778,7 @@ def main():
             cratelist = parse_registry_paths(args.crate_registry_paths,
                                              bulker_config.bulker.default_namespace)
             _LOGGER.debug(cratelist)
-            _LOGGER.info("Activating bulker crate: {}\n".format(args.crate_registry_paths))
+            _LOGGER.info("Activating bulker crate: {}{}".format(args.crate_registry_paths, " (Strict)" if args.strict else ""))
             bulker_activate(bulker_config, cratelist, echo=args.echo, strict=args.strict)
         except KeyError as e:
             parser.print_help(sys.stderr)
@@ -705,22 +815,32 @@ def main():
 
         exe_template = mkabs(bulker_config.bulker.executable_template,
                              os.path.dirname(bulker_config._file_path))
+        build_template = mkabs(bulker_config.bulker.build_template, 
+                               os.path.dirname(bulker_config._file_path))        
         try:
             shell_template = mkabs(bulker_config.bulker.shell_template,
                              os.path.dirname(bulker_config._file_path))        
         except AttributeError:
             _LOGGER.error("You need to re-initialize your bulker config or add a 'shell_template' attribute.")
             sys.exit(1)
-        build_template = mkabs(bulker_config.bulker.build_template, 
-                               os.path.dirname(bulker_config._file_path))
 
 
-        _LOGGER.debug("Executable template: {}".format(exe_template))
-        assert(os.path.exists(exe_template))
+        try:
+            assert(os.path.exists(exe_template))
+        except AssertionError:
+            _LOGGER.error("Bulker config points to a missing executable template: {}".format(exe_template))
+            sys.exit(1)
+
         with open(exe_template, 'r') as f:
         # with open(DOCKER_TEMPLATE, 'r') as f:
             contents = f.read()
             exe_template_jinja = jinja2.Template(contents)
+
+        try:
+            assert(os.path.exists(shell_template))
+        except AssertionError:
+            _LOGGER.error("Bulker config points to a missing shell template: {}".format(shell_template))
+            sys.exit(1)
 
         with open(shell_template, 'r') as f:
         # with open(DOCKER_TEMPLATE, 'r') as f:
@@ -728,7 +848,15 @@ def main():
             shell_template_jinja = jinja2.Template(contents)
 
 
+
+
         if args.build:
+            try:
+                assert(os.path.exists(build_template))
+            except AssertionError:
+                _LOGGER.error("Bulker config points to a missing build template: {}".format(build_template))
+                sys.exit(1)
+
             _LOGGER.info("Building images with template: {}".format(build_template))
             with open(build_template, 'r') as f:
                 contents = f.read()
@@ -741,6 +869,28 @@ def main():
                     build=build_template_jinja,
                     force=args.force)
 
+    if args.command == "inspect":
+        if args.crate_registry_paths == "":
+            _LOGGER.error("No active create. Inspect requires a provided crate, or a currently active create.")
+            sys.exit(1)
+        manifest, cratevars = load_remote_registry_path(bulker_config, 
+                                                    args.crate_registry_paths,
+                                                    None)
+        manifest_name = cratevars['crate']
+
+        
+        print("Bulker manifest: {}".format(args.crate_registry_paths))
+        crate_path = os.path.join(bulker_config.bulker.default_crate_folder,
+                                  cratevars['namespace'],
+                                  manifest_name,
+                                  cratevars['tag'])
+        if not os.path.isabs(crate_path):
+            crate_path = os.path.join(os.path.dirname(bcfg._file_path), crate_path)
+        print("Crate path: {}".format(crate_path))
+        import glob
+        filenames = glob.glob(os.path.join(crate_path, "*"))
+        available_commands = [x for x in [os.path.basename(x) for x in filenames] if x[0] != "_"]
+        print("Available commands: {}".format(available_commands))
 
 if __name__ == '__main__':
     try:
