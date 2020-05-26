@@ -58,5 +58,3 @@ setup(
     **extra
 )
 
-
-print(msg)
