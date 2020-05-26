@@ -2,6 +2,7 @@
 
 
 import argparse
+import copy
 import jinja2
 import logging
 import logmuse
@@ -351,7 +352,7 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
 
     # should put this in a function
     def host_tool_specific_args(bcfg, pkg, hosttool_arg_key):
-        _LOGGER.debug(pkg, hosttool_arg_key)
+        _LOGGER.debug("Arg key: '{}'".format(hosttool_arg_key))
         # Here we're parsing the *image*, not the crate registry path.
         imvars = parse_registry_path_image(pkg['docker_image'])
         _LOGGER.debug(imvars)
@@ -372,8 +373,10 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
     if hasattr(manifest.manifest, "commands") and manifest.manifest.commands:
         for pkg in manifest.manifest.commands:
             _LOGGER.debug(pkg)
-            pkg = yacman.YacAttMap(pkg)  # (otherwise it's just a dict)
             pkg.update(bcfg.bulker) # Add terms from the bulker config
+            pkg = copy.deepcopy(yacman.YacAttMap(pkg))  # (otherwise it's just a dict)
+            # We have to deepcopy it so that changes we make to pkg aren't reflected in bcfg.
+
             if pkg.container_engine == "singularity" and "singularity_image_folder" in pkg:
                 pkg["singularity_image"] = os.path.basename(pkg["docker_image"])
                 pkg["namespace"] = os.path.dirname(pkg["docker_image"])
@@ -404,6 +407,22 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
             else:
                 pkg[hosttool_arg_key] = hts
                 
+
+            # Remove any excluded volumes from the package
+            exclude_vols = host_tool_specific_args(bcfg, pkg, "exclude_volumes")
+            _LOGGER.debug("Volume list: {}".format(pkg["volumes"]))
+            _LOGGER.debug("pkg: {}".format(pkg))
+            if len(exclude_vols) > 0:
+                for item in exclude_vols:
+                    _LOGGER.debug("Excluding volume: '{}'".format(item))
+                    try:
+                        pkg["volumes"].remove(item)
+                    except:
+                        pass
+                _LOGGER.debug("Volume list: {}".format(pkg["volumes"]))
+            else:
+                _LOGGER.debug("No excluded volumes")
+
 
             with open(path, "w") as fh:
                 fh.write(exe_jinja2_template.render(pkg=pkg))
@@ -468,6 +487,7 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
         _LOGGER.info("Commands available: {}".format(", ".join(cmdlist)))
     if host_cmd_count > 0:
         _LOGGER.info("Host commands available: {}".format(", ".join(host_cmdlist)))
+
 
 
     bcfg.write()
