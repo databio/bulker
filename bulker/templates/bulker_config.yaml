@@ -4,8 +4,8 @@ bulker:
   registry_url: http://hub.bulker.io/
   shell_path: ${SHELL}
   shell_rc: ${HOME}/.bashrc
-  rcfile: templates/start.sh
-  rcfile_strict: templates/start_strict.sh  
+  rcfile: start.sh
+  rcfile_strict: start_strict.sh  
   default_crate_folder: ${HOME}/bulker_crates
   singularity_image_folder: ${HOME}/simages
   container_engine: docker

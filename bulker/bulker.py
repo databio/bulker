@@ -38,6 +38,9 @@ SINGULARITY_EXE_TEMPLATE = "singularity_executable.jinja2"
 SINGULARITY_SHELL_TEMPLATE = "singularity_shell.jinja2"
 SINGULARITY_BUILD_TEMPLATE = "singularity_build.jinja2"
 
+RCFILE_TEMPLATE = "start.sh"
+RCFILE_STRICT_TEMPLATE = "start_strict.sh"
+
 DEFAULT_BASE_URL = "http://hub.bulker.io"
 
 LOCAL_EXE_TEMPLATE = """
@@ -264,6 +267,8 @@ def bulker_init(config_path, template_config_path, container_engine=None):
             bulker_config.bulker.executable_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_EXE_TEMPLATE)
             bulker_config.bulker.shell_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_SHELL_TEMPLATE)
             bulker_config.bulker.build_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_BUILD_TEMPLATE)
+        bulker_config.bulker.rcfile = os.path.join(TEMPLATE_SUBDIR, RCFILE_TEMPLATE)
+        bulker_config.bulker.rcfile_strict = os.path.join(TEMPLATE_SUBDIR, RCFILE_STRICT_TEMPLATE)
         bulker_config.write(config_path)
         # copyfile(template_config_path, new_template)
         # os.rename(new_template, config_path)
