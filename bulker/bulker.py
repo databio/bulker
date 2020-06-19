@@ -663,14 +663,24 @@ def bulker_run(bulker_config, cratelist, command, strict=False):
     _LOGGER.debug("{}".format(command))
     newpath = get_new_PATH(bulker_config, cratelist, strict)
 
+    def maybe_quote(item):
+        if ' ' in item:
+            return "\"{}\"".format(item)
+        else:
+            return item
+    
+    quoted_command = [maybe_quote(x) for x in command]
     os.environ["PATH"] = newpath  
     export = "export PATH=\"{}\"".format(newpath)
-    merged_command = "{export}; {command}".format(export=export, command=" ".join(command))
+    merged_command = "{export}; {command}".format(export=export, command=" ".join(quoted_command))
     _LOGGER.debug("{}".format(merged_command))
     # os.system(merged_command)
     # os.execlp(command[0], merged_command)
     import subprocess
     subprocess.call(merged_command, shell=True)
+
+    #command[0:0] = ["export", "PATH=\"{}\"".format(newpath)]
+    #subprocess.call(merged_command)
 
 
 def load_remote_registry_path(bulker_config, registry_path, filepath=None):
