@@ -7,8 +7,10 @@ import jinja2
 import logging
 import logmuse
 import os
+import psutil
 import sys
 import yacman
+import signal
 import shutil
 
 from distutils.dir_util import copy_tree
@@ -49,7 +51,7 @@ LOCAL_EXE_TEMPLATE = """
 
 _LOGGER = logging.getLogger(__name__)
 
-
+PROC = -1
 
 # TODO: move to exceptions file
 
@@ -583,6 +585,7 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
         print("export BULKERSHELLRC=\"{}\"".format(shell_rc))
         print("export PS1=\"{}\"".format(ps1))
         print("export PATH={}".format(newpath))
+        return
     else:
         _LOGGER.debug("Shell list: {}". format(shell_list))
 
@@ -677,11 +680,128 @@ def bulker_run(bulker_config, cratelist, command, strict=False):
     # os.system(merged_command)
     # os.execlp(command[0], merged_command)
     import subprocess
-    subprocess.call(merged_command, shell=True)
-
+    import psutil
+    signal.signal(signal.SIGINT, _generic_signal_handler)
+    signal.signal(signal.SIGTERM, _generic_signal_handler)    
+    # process = subprocess.call(merged_command, shell=True)
+    global PROC
+    PROC = psutil.Popen(merged_command, shell=True, preexec_fn=os.setsid)
+    PROC.wait()
     #command[0:0] = ["export", "PATH=\"{}\"".format(newpath)]
     #subprocess.call(merged_command)
 
+def _generic_signal_handler(sig, frame):
+    """
+    Function for handling both SIGTERM and SIGINT
+    """
+
+    global PROC
+    message = "Interrupt received. Bulker (pid: {}) failing gracefully...".format(PROC.pid)
+    _LOGGER.info(message)
+    sys.stdout.flush()
+    try:
+        parent_process = psutil.Process(PROC.pid)
+        print("children:", [x for x in parent_process.children(recursive=False)])
+        for child_proc in parent_process.children(recursive=False):
+            _kill_process(child_proc.pid)
+    except psutil.NoSuchProcess:
+        print("already dead")
+        return    
+    _kill_process(PROC.pid)
+    PROC.wait(timeout=5)
+    sys.stdout.flush()
+    
+    sys.exit(1)
+
+
+def _attend_process( proc, sleeptime):
+    """
+    Waits on a process for a given time to see if it finishes, returns True
+    if it's still running after the given time or False as soon as it 
+    returns.
+
+    :param psutil.Popen proc: Process object opened by psutil.Popen()
+    :param float sleeptime: Time to wait
+    :return bool: True if process is still running; otherwise false
+    """
+    # print("attend:{}".format(proc.pid))
+    try:
+        proc.wait(timeout=sleeptime)
+    except psutil.TimeoutExpired:
+        return True
+    return False
+
+def _kill_process(pid, sig=signal.SIGINT, proc_name=None):
+    """
+    Pypiper spawns subprocesses. We need to kill them to exit gracefully,
+    in the event of a pipeline termination or interrupt signal.
+    By default, child processes are not automatically killed when python
+    terminates, so Pypiper must clean these up manually.
+    Given a process ID, this function just kills it.
+
+    :param int pid: Process id.
+    """
+
+    # When we kill process, it turns into a zombie, and we have to reap it.
+    # So we can't just kill it and then let it go; we call wait
+    import time
+
+    if pid is None:
+        return
+
+    try:
+        parent_process = psutil.Process(pid)
+        sys.stdout.flush()
+        time_waiting = 0
+        sleeptime = .25
+        still_running = _attend_process(psutil.Process(pid), 0)
+
+        while still_running and time_waiting < 3:
+            if time_waiting > 2:
+                sig = signal.SIGKILL
+            elif time_waiting > 1:
+                sig = signal.SIGTERM
+            else:
+                sig = signal.SIGINT
+
+            _LOGGER.debug("Sending sig {} to proc {}".format(sig, pid))
+            parent_process.send_signal(sig)
+
+            # Now see if it's still running
+            time_waiting = time_waiting + sleeptime
+            if not _attend_process(psutil.Process(pid), sleeptime):
+                still_running = False
+
+    except OSError:
+        # This would happen if the child process ended between the check
+        # and the next kill step
+        still_running = False
+        time_waiting = time_waiting + sleeptime
+        print("proc {} already dead 1".format(pid))
+    except psutil.NoSuchProcess:
+        still_running = False
+        time_waiting = time_waiting + sleeptime
+        print("proc {} already dead 1".format(pid))
+
+    if proc_name:
+        proc_string = " ({proc_name})".format(proc_name=proc_name)
+    else:
+        proc_string = " "
+ 
+    if still_running:
+        # still running!?
+        _LOGGER.warning("Bulker child process {pid}{proc_string} never responded"
+            "I just can't take it anymore. I don't know what to do...".format(pid=pid,
+                proc_string=proc_string))
+    else:
+        if time_waiting > 0:
+            note = "terminated after {time} sec".format(time=int(time_waiting))
+        else:
+            note = "was already terminated"
+
+        msg = "Bulker child process {pid}{proc_string} {note}.".format(
+            pid=pid, proc_string=proc_string, note=note)
+        _LOGGER.info(msg)
 
 def load_remote_registry_path(bulker_config, registry_path, filepath=None):
     cratevars = parse_registry_path(registry_path)
