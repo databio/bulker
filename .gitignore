@@ -78,3 +78,5 @@ bulker.egg-info/
 #ipynm checkpoints
 *ipynb_checkpoints*
 *.egg-info*
+
+docs_jupyter/biobase_example

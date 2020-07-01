@@ -13,6 +13,7 @@ nav:
     - "Tutorial": tutorial.md
     - PEPPRO pipeline tutorial: peppro.md
     - Refgenie tutorial: refgenie_tutorial.md
+    - Biobase tutorial: biobase.md
   - How-to Guides:
     - Create strict environments: strict.md
     - Write a manifest: manifest.md

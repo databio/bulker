@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+- Allowed `bulker run` to gracefully handle interrupts, passing them to the child process.
+
+
 ## [0.6.0] -- 2020-06-10
 - Fixed a bug with using the default config
 - Added capability to exclude volumes from specific containers

@@ -1,6 +1,6 @@
 # Tips and FAQ
 
-## Why doesn't bulker activate preserve history?
+## Why doesn't `bulker activate` preserve history?
 
 One mildly annoying thing I've found using bulker is that when you `bulker activate` a crate, you get a new shell, which messes with the history; commands typed before the activate are not available in the history, and commands typed within the shell may not be saved. This is because when you activate a bulker environment, it starts a new shell. The old shell won't have recorded its history for viewing by the new shell. Then, when the close the shell and go back to the calling environment, the previous history is restored. 
 
@@ -23,7 +23,7 @@ Then, use `ba` instead of `bulker activate`. This just calls `history -a` first,
 
 ## How can I prevent `bulker activate` from creating a new shell?
 
-In earlier versions of bulker, I recommneded using an `--echo` command to load the bulker environment into the current shell to avoid creating a new one. This is still possible, but no longer recommended, since I came up with a better way to control things using the shell rcfiles. But if you have other reasons, it's still possible to prevent bulker from creating a new shell -- we just need the bulker process to communicate with its parent shell. All the `activate` command really does is prepend a folder to your PATH environment variable. So, we set up a `-e` (echo) argument to `bulker activate` which allows you to retrieve this information in your current shell. This does require adding something to your `.bashrc` so that the calling shell can retrieve the paths returned by bulker.
+In earlier versions of bulker, I recommended using an `--echo` command to load the bulker environment into the current shell to avoid creating a new one. This is still possible, but no longer recommended, since I came up with a better way to control things using the shell rcfiles. But if you have other reasons, it's still possible to prevent bulker from creating a new shell -- we just need the bulker process to communicate with its parent shell. All the `activate` command really does is prepend a folder to your PATH environment variable. So, we set up a `-e` (echo) argument to `bulker activate` which allows you to retrieve this information in your current shell. This does require adding something to your `.bashrc` so that the calling shell can retrieve the paths returned by bulker.
 
 To do this, just add this to your `.bashrc`:
 
