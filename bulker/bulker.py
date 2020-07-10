@@ -173,6 +173,10 @@ def build_argparser():
             "-e", "--echo", action='store_true', default=False,
             help="Echo command instead of running it.")
 
+    sps["activate"].add_argument(
+            "-p", "--no-prompt", action='store_false', default=True,
+            help="Suppress prompt reset")
+
     sps["list"].add_argument(
             "-s", "--simple", action='store_true', default=False,
             help="Echo only crate registry paths, not local file paths.")
@@ -499,7 +503,7 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
 
     bcfg.write()
 
-def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
+def bulker_activate(bulker_config, cratelist, echo=False, strict=False, prompt=True):
     """
     Activates a given crate.
 
@@ -583,7 +587,8 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
         print("export BULKERPATH=\"{}\"".format(newpath))
         print("export BULKERPROMPT=\"{}\"".format(ps1))
         print("export BULKERSHELLRC=\"{}\"".format(shell_rc))
-        print("export PS1=\"{}\"".format(ps1))
+        if prompt:
+            print("export PS1=\"{}\"".format(ps1))
         print("export PATH={}".format(newpath))
         return
     else:
@@ -591,7 +596,10 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
 
         new_env["BULKERCRATE"] = name
         new_env["BULKERPATH"] = newpath
-        new_env["BULKERPROMPT"] = ps1
+        if prompt:
+            new_env["BULKERPROMPT"] = ps1
+           
+
         new_env["BULKERSHELLRC"] = shell_rc
 
         if strict:
@@ -624,7 +632,9 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
             new_env["ZDOTDIR"] = rcfolder
             _LOGGER.debug("ZDOTDIR: {}".format(new_env["ZDOTDIR"]))
 
-        os.execve(shell_list[0], shell_list[1:], env=new_env)
+        _LOGGER.debug(new_env)
+        os.execv(shell_list[0], shell_list[1:])
+        # os.execve(shell_list[0], shell_list[1:], env=new_env)
 
          # The 'v' means 'pass a variable with a list of args' vs. 'l' which is 
         # a list of separate args.
@@ -934,7 +944,7 @@ def main():
                                              bulker_config.bulker.default_namespace)
             _LOGGER.debug(cratelist)
             _LOGGER.info("Activating bulker crate: {}{}".format(args.crate_registry_paths, " (Strict)" if args.strict else ""))
-            bulker_activate(bulker_config, cratelist, echo=args.echo, strict=args.strict)
+            bulker_activate(bulker_config, cratelist, echo=args.echo, strict=args.strict, prompt=args.no_prompt)
         except KeyError as e:
             parser.print_help(sys.stderr)
             _LOGGER.error("{} is not an available crate".format(e))
