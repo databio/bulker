@@ -41,7 +41,7 @@ Just write your workflow without containers and use a bulker environment instead
 ### 1 Install bulker
 
 ```console
-pip install --user bulker
+pip install bulker
 ```
 
 ### 2 Load a crate

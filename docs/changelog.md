@@ -1,6 +1,14 @@
 # Changelog
 
-## [0.5.0] -- 2020-03-31
+## [0.6.0] -- 2020-07-10
+- Allowed `bulker run` to gracefully handle interrupts, passing them to the child process.
+- Implemented `-p`, which doesn't update prompts, for compatibility with jupyter
+- Fixed a bug with using the default config
+- Added capability to exclude volumes from specific containers
+- Fixed a bug with singularity exec template
+- Dropped support for Python 2
+
+## [0.5.0] -- 2020-04-08
 - Added bulker shell prompts for both normal and strict modes
 - Added custom shell prompts (experimental!)
 - Added `bulker inspect`
