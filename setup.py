@@ -22,31 +22,22 @@ extra["install_requires"] = DEPENDENCIES
 with open("{}/_version.py".format(PACKAGE), 'r') as versionfile:
     version = versionfile.readline().split()[-1].strip("\"'\n")
 
-
-
-# Handle the pypi README formatting.
-try:
-    import pypandoc
-    long_description = pypandoc.convert_file('README.md', 'rst')
-    msg = "\033[032mPandoc conversion succeeded.\033[0m"
-except(IOError, ImportError, OSError):
-    msg = "\033[0;31mWarning: pandoc conversion failed!\033[0m"
-    long_description = open('README.md').read()
+# Use README for PyPI
+long_description = open('README.md').read()
 
 setup(
     name=PACKAGE,
     packages=[PACKAGE],
     version=version,
-    description="A manager for containerized executables",
+    description="Manager of portable multi-container computing environments",
     long_description=long_description,
     long_description_content_type='text/markdown',
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: BSD License",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
-        "Topic :: System :: Distributed Computing"
+        "Programming Language :: Python :: 3.7",
+        "Topic :: Scientific/Engineering :: Bio-Informatics"
     ],
     keywords="docker, containers, reproducibility, bioinformatics, workflow",
     url="https://bulker.databio.org",
@@ -66,5 +57,3 @@ setup(
     **extra
 )
 
-
-print(msg)

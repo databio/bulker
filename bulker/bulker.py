@@ -2,12 +2,15 @@
 
 
 import argparse
+import copy
 import jinja2
 import logging
 import logmuse
 import os
+import psutil
 import sys
 import yacman
+import signal
 import shutil
 
 from distutils.dir_util import copy_tree
@@ -37,6 +40,9 @@ SINGULARITY_EXE_TEMPLATE = "singularity_executable.jinja2"
 SINGULARITY_SHELL_TEMPLATE = "singularity_shell.jinja2"
 SINGULARITY_BUILD_TEMPLATE = "singularity_build.jinja2"
 
+RCFILE_TEMPLATE = "start.sh"
+RCFILE_STRICT_TEMPLATE = "start_strict.sh"
+
 DEFAULT_BASE_URL = "http://hub.bulker.io"
 
 LOCAL_EXE_TEMPLATE = """
@@ -45,7 +51,7 @@ LOCAL_EXE_TEMPLATE = """
 
 _LOGGER = logging.getLogger(__name__)
 
-
+PROC = -1
 
 # TODO: move to exceptions file
 
@@ -167,6 +173,10 @@ def build_argparser():
             "-e", "--echo", action='store_true', default=False,
             help="Echo command instead of running it.")
 
+    sps["activate"].add_argument(
+            "-p", "--no-prompt", action='store_false', default=True,
+            help="Suppress prompt reset")
+
     sps["list"].add_argument(
             "-s", "--simple", action='store_true', default=False,
             help="Echo only crate registry paths, not local file paths.")
@@ -263,6 +273,8 @@ def bulker_init(config_path, template_config_path, container_engine=None):
             bulker_config.bulker.executable_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_EXE_TEMPLATE)
             bulker_config.bulker.shell_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_SHELL_TEMPLATE)
             bulker_config.bulker.build_template = os.path.join(TEMPLATE_SUBDIR, SINGULARITY_BUILD_TEMPLATE)
+        bulker_config.bulker.rcfile = os.path.join(TEMPLATE_SUBDIR, RCFILE_TEMPLATE)
+        bulker_config.bulker.rcfile_strict = os.path.join(TEMPLATE_SUBDIR, RCFILE_STRICT_TEMPLATE)
         bulker_config.write(config_path)
         # copyfile(template_config_path, new_template)
         # os.rename(new_template, config_path)
@@ -351,7 +363,7 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
 
     # should put this in a function
     def host_tool_specific_args(bcfg, pkg, hosttool_arg_key):
-        _LOGGER.debug(pkg, hosttool_arg_key)
+        _LOGGER.debug("Arg key: '{}'".format(hosttool_arg_key))
         # Here we're parsing the *image*, not the crate registry path.
         imvars = parse_registry_path_image(pkg['docker_image'])
         _LOGGER.debug(imvars)
@@ -372,8 +384,10 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
     if hasattr(manifest.manifest, "commands") and manifest.manifest.commands:
         for pkg in manifest.manifest.commands:
             _LOGGER.debug(pkg)
-            pkg = yacman.YacAttMap(pkg)  # (otherwise it's just a dict)
             pkg.update(bcfg.bulker) # Add terms from the bulker config
+            pkg = copy.deepcopy(yacman.YacAttMap(pkg))  # (otherwise it's just a dict)
+            # We have to deepcopy it so that changes we make to pkg aren't reflected in bcfg.
+
             if pkg.container_engine == "singularity" and "singularity_image_folder" in pkg:
                 pkg["singularity_image"] = os.path.basename(pkg["docker_image"])
                 pkg["namespace"] = os.path.dirname(pkg["docker_image"])
@@ -404,6 +418,22 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
             else:
                 pkg[hosttool_arg_key] = hts
                 
+
+            # Remove any excluded volumes from the package
+            exclude_vols = host_tool_specific_args(bcfg, pkg, "exclude_volumes")
+            _LOGGER.debug("Volume list: {}".format(pkg["volumes"]))
+            _LOGGER.debug("pkg: {}".format(pkg))
+            if len(exclude_vols) > 0:
+                for item in exclude_vols:
+                    _LOGGER.debug("Excluding volume: '{}'".format(item))
+                    try:
+                        pkg["volumes"].remove(item)
+                    except:
+                        pass
+                _LOGGER.debug("Volume list: {}".format(pkg["volumes"]))
+            else:
+                _LOGGER.debug("No excluded volumes")
+
 
             with open(path, "w") as fh:
                 fh.write(exe_jinja2_template.render(pkg=pkg))
@@ -470,9 +500,10 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
         _LOGGER.info("Host commands available: {}".format(", ".join(host_cmdlist)))
 
 
+
     bcfg.write()
 
-def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
+def bulker_activate(bulker_config, cratelist, echo=False, strict=False, prompt=True):
     """
     Activates a given crate.
 
@@ -554,16 +585,20 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
     if echo:
         print("export BULKERCRATE=\"{}\"".format(name))
         print("export BULKERPATH=\"{}\"".format(newpath))
-        print("export BULKERPROMPT=\"{}\"".format(ps1))
         print("export BULKERSHELLRC=\"{}\"".format(shell_rc))
-        print("export PS1=\"{}\"".format(ps1))
+        if prompt:
+            print("export BULKERPROMPT=\"{}\"".format(ps1))
+            print("export PS1=\"{}\"".format(ps1))
         print("export PATH={}".format(newpath))
+        return
     else:
         _LOGGER.debug("Shell list: {}". format(shell_list))
 
         new_env["BULKERCRATE"] = name
         new_env["BULKERPATH"] = newpath
-        new_env["BULKERPROMPT"] = ps1
+        if prompt:
+            new_env["BULKERPROMPT"] = ps1
+
         new_env["BULKERSHELLRC"] = shell_rc
 
         if strict:
@@ -596,6 +631,8 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False):
             new_env["ZDOTDIR"] = rcfolder
             _LOGGER.debug("ZDOTDIR: {}".format(new_env["ZDOTDIR"]))
 
+        _LOGGER.debug(new_env)
+        #os.execv(shell_list[0], shell_list[1:])
         os.execve(shell_list[0], shell_list[1:], env=new_env)
 
          # The 'v' means 'pass a variable with a list of args' vs. 'l' which is 
@@ -638,15 +675,142 @@ def bulker_run(bulker_config, cratelist, command, strict=False):
     _LOGGER.debug("{}".format(command))
     newpath = get_new_PATH(bulker_config, cratelist, strict)
 
+    def maybe_quote(item):
+        if ' ' in item:
+            return "\"{}\"".format(item)
+        else:
+            return item
+    
+    quoted_command = [maybe_quote(x) for x in command]
     os.environ["PATH"] = newpath  
     export = "export PATH=\"{}\"".format(newpath)
-    merged_command = "{export}; {command}".format(export=export, command=" ".join(command))
+    merged_command = "{export}; {command}".format(export=export, command=" ".join(quoted_command))
     _LOGGER.debug("{}".format(merged_command))
     # os.system(merged_command)
     # os.execlp(command[0], merged_command)
     import subprocess
-    subprocess.call(merged_command, shell=True)
+    import psutil
+    signal.signal(signal.SIGINT, _generic_signal_handler)
+    signal.signal(signal.SIGTERM, _generic_signal_handler)    
+    # process = subprocess.call(merged_command, shell=True)
+    global PROC
+    PROC = psutil.Popen(merged_command, shell=True, preexec_fn=os.setsid)
+    PROC.communicate()
+    #command[0:0] = ["export", "PATH=\"{}\"".format(newpath)]
+    #subprocess.call(merged_command)
 
+def _generic_signal_handler(sig, frame):
+    """
+    Function for handling both SIGTERM and SIGINT
+    """
+
+    global PROC
+    message = "Interrupt received. Bulker (pid: {}) failing gracefully...".format(PROC.pid)
+    _LOGGER.info(message)
+    sys.stdout.flush()
+    try:
+        parent_process = psutil.Process(PROC.pid)
+        print("children:", [x for x in parent_process.children(recursive=False)])
+        for child_proc in parent_process.children(recursive=False):
+            _kill_process(child_proc.pid)
+    except psutil.NoSuchProcess:
+        print("already dead")
+        return    
+    _kill_process(PROC.pid)
+    PROC.wait(timeout=5)
+    sys.stdout.flush()
+    
+    sys.exit(1)
+
+
+def _attend_process( proc, sleeptime):
+    """
+    Waits on a process for a given time to see if it finishes, returns True
+    if it's still running after the given time or False as soon as it 
+    returns.
+
+    :param psutil.Popen proc: Process object opened by psutil.Popen()
+    :param float sleeptime: Time to wait
+    :return bool: True if process is still running; otherwise false
+    """
+    # print("attend:{}".format(proc.pid))
+    try:
+        proc.wait(timeout=sleeptime)
+    except psutil.TimeoutExpired:
+        return True
+    return False
+
+def _kill_process(pid, sig=signal.SIGINT, proc_name=None):
+    """
+    Pypiper spawns subprocesses. We need to kill them to exit gracefully,
+    in the event of a pipeline termination or interrupt signal.
+    By default, child processes are not automatically killed when python
+    terminates, so Pypiper must clean these up manually.
+    Given a process ID, this function just kills it.
+
+    :param int pid: Process id.
+    """
+
+    # When we kill process, it turns into a zombie, and we have to reap it.
+    # So we can't just kill it and then let it go; we call wait
+    import time
+
+    if pid is None:
+        return
+
+    try:
+        parent_process = psutil.Process(pid)
+        sys.stdout.flush()
+        time_waiting = 0
+        sleeptime = .25
+        still_running = _attend_process(psutil.Process(pid), 0)
+
+        while still_running and time_waiting < 3:
+            if time_waiting > 2:
+                sig = signal.SIGKILL
+            elif time_waiting > 1:
+                sig = signal.SIGTERM
+            else:
+                sig = signal.SIGINT
+
+            _LOGGER.debug("Sending sig {} to proc {}".format(sig, pid))
+            parent_process.send_signal(sig)
+
+            # Now see if it's still running
+            time_waiting = time_waiting + sleeptime
+            if not _attend_process(psutil.Process(pid), sleeptime):
+                still_running = False
+
+    except OSError:
+        # This would happen if the child process ended between the check
+        # and the next kill step
+        still_running = False
+        time_waiting = time_waiting + sleeptime
+        print("proc {} already dead 1".format(pid))
+    except psutil.NoSuchProcess:
+        still_running = False
+        time_waiting = time_waiting + sleeptime
+        print("proc {} already dead 1".format(pid))
+
+    if proc_name:
+        proc_string = " ({proc_name})".format(proc_name=proc_name)
+    else:
+        proc_string = " "
+ 
+    if still_running:
+        # still running!?
+        _LOGGER.warning("Bulker child process {pid}{proc_string} never responded"
+            "I just can't take it anymore. I don't know what to do...".format(pid=pid,
+                proc_string=proc_string))
+    else:
+        if time_waiting > 0:
+            note = "terminated after {time} sec".format(time=int(time_waiting))
+        else:
+            note = "was already terminated"
+
+        msg = "Bulker child process {pid}{proc_string} {note}.".format(
+            pid=pid, proc_string=proc_string, note=note)
+        _LOGGER.info(msg)
 
 def load_remote_registry_path(bulker_config, registry_path, filepath=None):
     cratevars = parse_registry_path(registry_path)
@@ -779,7 +943,7 @@ def main():
                                              bulker_config.bulker.default_namespace)
             _LOGGER.debug(cratelist)
             _LOGGER.info("Activating bulker crate: {}{}".format(args.crate_registry_paths, " (Strict)" if args.strict else ""))
-            bulker_activate(bulker_config, cratelist, echo=args.echo, strict=args.strict)
+            bulker_activate(bulker_config, cratelist, echo=args.echo, strict=args.strict, prompt=args.no_prompt)
         except KeyError as e:
             parser.print_help(sys.stderr)
             _LOGGER.error("{} is not an available crate".format(e))
