@@ -80,3 +80,5 @@ bulker.egg-info/
 *.egg-info*
 
 docs_jupyter/biobase_example
+docs_jupyter/templates/
+docs_jupyter/fasterq*
