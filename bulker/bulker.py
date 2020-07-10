@@ -585,9 +585,9 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False, prompt=T
     if echo:
         print("export BULKERCRATE=\"{}\"".format(name))
         print("export BULKERPATH=\"{}\"".format(newpath))
-        print("export BULKERPROMPT=\"{}\"".format(ps1))
         print("export BULKERSHELLRC=\"{}\"".format(shell_rc))
         if prompt:
+            print("export BULKERPROMPT=\"{}\"".format(ps1))
             print("export PS1=\"{}\"".format(ps1))
         print("export PATH={}".format(newpath))
         return
@@ -598,7 +598,6 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False, prompt=T
         new_env["BULKERPATH"] = newpath
         if prompt:
             new_env["BULKERPROMPT"] = ps1
-           
 
         new_env["BULKERSHELLRC"] = shell_rc
 
@@ -633,8 +632,8 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False, prompt=T
             _LOGGER.debug("ZDOTDIR: {}".format(new_env["ZDOTDIR"]))
 
         _LOGGER.debug(new_env)
-        os.execv(shell_list[0], shell_list[1:])
-        # os.execve(shell_list[0], shell_list[1:], env=new_env)
+        #os.execv(shell_list[0], shell_list[1:])
+        os.execve(shell_list[0], shell_list[1:], env=new_env)
 
          # The 'v' means 'pass a variable with a list of args' vs. 'l' which is 
         # a list of separate args.
