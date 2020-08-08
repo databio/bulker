@@ -574,6 +574,8 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False, prompt=T
         elif os.path.basename(shellpath) == "zsh":
             ps1 = "%F{226}%b|%f%F{blue}%~%f %# "
         else:
+            ps1 = ""
+            prompt = False
             _LOGGER.warning("No built-in custom prompt for shells other than bash or zsh")        
     
     # \b is our bulker-specific code that we populate with the crate
