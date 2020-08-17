@@ -63,6 +63,14 @@ class BulkerError(Exception):
     """ Base exception type for this package """
     __metaclass__ = abc.ABCMeta
 
+class BaseCommandNotFoundException(Exception):
+    def __init__(self, file):
+        self.file = file
+
+class ImageNotFoundException(Exception):
+    def __init__(self, file):
+        self.file = file
+
 
 class MissingCrateError(BulkerError):
     """ Error type for request of an unavailable genome asset. """
@@ -93,7 +101,8 @@ def build_argparser():
         "list": "List available bulker crates",
         "load": "Load a crate from a manifest",
         "activate": "Activate a crate by adding it to PATH",
-        "run": "Run a command in a crate"
+        "run": "Run a command in a crate",
+        "cwl2man": "Build a manifest from cwl tool descriptions"
     }
 
     parser = _VersionInHelpParser(
@@ -117,9 +126,13 @@ def build_argparser():
             cmd, description=description, help=description)
 
 
+    # Add subparsers
     sps = {}
     for cmd, desc in subparser_messages.items():
         sps[cmd] = add_subparser(cmd, desc)
+
+    # Add config option to relevant subparsers
+    for cmd in ["init", "list", "load", "activate", "run"]:
         sps[cmd].add_argument(
             "-c", "--config", required=(cmd == "init"),
             help="Bulker configuration file.")
@@ -132,10 +145,11 @@ def build_argparser():
         sps[cmd].add_argument(
             "crate_registry_paths", metavar="crate-registry-paths", type=str,
             help="One or more comma-separated registry path strings"
-            "  that identify crates (e.g. bulker/demo:1.0.0)")
+            "  that identify crates (e.g. bulker/demo:1.F0.0)")
 
-    # optional for inspect
-    sps["inspect"].add_argument(
+    # optional for inspect and cwl2man
+    for cmd in ["inspect"]:
+        sps[cmd].add_argument(
             "crate_registry_paths", metavar="crate-registry-paths", type=str,
             nargs="?", default=os.getenv("BULKERCRATE", ""),
             help="One or more comma-separated registry path strings"
@@ -151,6 +165,14 @@ def build_argparser():
     sps["load"].add_argument(
             "-f", "--manifest",
             help="File path to manifest. Can be a remote URL or local file.")
+
+    sps["cwl2man"].add_argument(
+            "-f", "--manifest",
+            help="File path to manifest to write. Must be a local file.")
+
+    sps["cwl2man"].add_argument(
+            "-c", "--cwl", nargs="+", required=True,
+            help="File paths to cwl tool descriptions.")
 
     sps["load"].add_argument(
             "-p", "--path",
@@ -888,6 +910,75 @@ def mkabs(path, reldir=None):
     return os.path.join(xpand(reldir), xpand(path))
 
 
+def parse_cwl(cwl_file):
+    """
+    :param str cwl_file: CWL tool description file.
+    """
+    yam = yacman.YacAttMap(filepath=cwl_file)
+    if yam["class"] != "CommandLineTool":
+        _LOGGER.info("CWL file of wrong class: {} ({})".format(cwl_file, yam["class"]))
+        return None
+    try:
+        maybe_base_command = yam.baseCommand
+    except AttributeError:
+        _LOGGER.info("Can't find base command from {}".format(cwl_file))
+        raise BaseCommandNotFoundException(cwl_file)
+
+    if isinstance(maybe_base_command, list):
+        base_command = maybe_base_command[0]
+    else:
+        base_command = maybe_base_command
+
+    if os.path.isabs(base_command):
+        _LOGGER.debug("Converting base command to relative: {}".format(base_command))        
+        base_command = os.path.basename(base_command)
+
+    _LOGGER.debug("Base command: {}".format(base_command))
+    try: 
+        image = None
+
+        if hasattr(yam, "requirements"):        
+            if hasattr(yam.requirements, "DockerRequirement"):
+                image = yam.requirements.DockerRequirement.dockerPull
+            elif isinstance(yam.requirements, list):
+                for req in yam.requirements:
+                    if req["class"] == "DockerRequirement":
+                        image = req["dockerPull"]
+        if not image and hasattr(yam, "hints"): 
+            if hasattr(yam.hints, "DockerRequirement"):
+                image = yam.hints.DockerRequirement.dockerPull
+            elif isinstance(yam.hints, list):
+                for hint in yam.hints:
+                    if hint["class"] == "DockerRequirement":
+                        image = hint["dockerPull"]
+        if not image:
+            _LOGGER.info("Can't find image for {} from {}".format(
+                base_command, cwl_file))
+            raise ImageNotFoundException(cwl_file)            
+    except Exception as e:
+        _LOGGER.info("Can't find image for {} from {}".format(
+            base_command, cwl_file))
+        _LOGGER.debug(e)
+        raise ImageNotFoundException(cwl_file)
+
+
+    if str(image).startswith("$include"):
+        print(str(image))
+        x = yacman.YacAttMap(yamldata=str(image))
+        file_path = str(x["$include"])
+        with open(os.path.join(os.path.dirname(cwl_file), file_path), 'r') as f:
+            contents = f.read()
+        image = contents
+
+
+    _LOGGER.info("Adding image {} for command {} from file {}".format(
+        image, base_command, cwl_file))
+
+    return {"command": base_command,
+            "docker_image": image,
+            "docker_command": base_command}
+
+
 def main():
     """ Primary workflow """
 
@@ -911,6 +1002,60 @@ def main():
         _is_writable(os.path.dirname(bulkercfg), check_exist=False)
         bulker_init(bulkercfg, DEFAULT_CONFIG_FILEPATH, args.engine)
         sys.exit(0)      
+
+
+    if args.command == "cwl2man":
+        bm = yacman.YacAttMap()
+        bm.manifest = yacman.YacAttMap()
+        bm.manifest.commands = []
+
+        baseCommandsNotFound = []
+        imagesNotFound = []
+        for cwl_file in args.cwl:
+            try:
+                cmd = parse_cwl(cwl_file)
+                if cmd:
+                    bm.manifest.commands.append(cmd)
+            except BaseCommandNotFoundException as e:
+                baseCommandsNotFound.append(e.file)
+            except ImageNotFoundException as e:
+                imagesNotFound.append(e.file)
+
+        _LOGGER.info("Commands added: {}".format(len(bm.manifest.commands)))
+        if len(baseCommandsNotFound) > 0:
+            _LOGGER.info("Command not found ({}): {}".format(
+                len(baseCommandsNotFound), baseCommandsNotFound))
+        if len(imagesNotFound) > 0:
+            _LOGGER.info("Image not found ({}): {}".format(
+                len(imagesNotFound), imagesNotFound))
+        bm.write(args.manifest)
+        sys.exit(0)
+
+
+    if args.command == "inspect":
+        if args.crate_registry_paths == "":
+            _LOGGER.error("No active create. Inspect requires a provided crate, or a currently active create.")
+            sys.exit(1)
+        manifest, cratevars = load_remote_registry_path(bulker_config, 
+                                                    args.crate_registry_paths,
+                                                    None)
+        manifest_name = cratevars['crate']
+
+        
+        print("Bulker manifest: {}".format(args.crate_registry_paths))
+        crate_path = os.path.join(bulker_config.bulker.default_crate_folder,
+                                  cratevars['namespace'],
+                                  manifest_name,
+                                  cratevars['tag'])
+        if not os.path.isabs(crate_path):
+            crate_path = os.path.join(os.path.dirname(bcfg._file_path), crate_path)
+        print("Crate path: {}".format(crate_path))
+        import glob
+        filenames = glob.glob(os.path.join(crate_path, "*"))
+        available_commands = [x for x in [os.path.basename(x) for x in filenames] if x[0] != "_"]
+        print("Available commands: {}".format(available_commands))
+
+    # Any remaining commands require config so we process it now.
 
     bulkercfg = select_bulker_config(args.config)
     bulker_config = yacman.YacAttMap(filepath=bulkercfg, writable=False)
@@ -1035,28 +1180,7 @@ def main():
                     build=build_template_jinja,
                     force=args.force)
 
-    if args.command == "inspect":
-        if args.crate_registry_paths == "":
-            _LOGGER.error("No active create. Inspect requires a provided crate, or a currently active create.")
-            sys.exit(1)
-        manifest, cratevars = load_remote_registry_path(bulker_config, 
-                                                    args.crate_registry_paths,
-                                                    None)
-        manifest_name = cratevars['crate']
 
-        
-        print("Bulker manifest: {}".format(args.crate_registry_paths))
-        crate_path = os.path.join(bulker_config.bulker.default_crate_folder,
-                                  cratevars['namespace'],
-                                  manifest_name,
-                                  cratevars['tag'])
-        if not os.path.isabs(crate_path):
-            crate_path = os.path.join(os.path.dirname(bcfg._file_path), crate_path)
-        print("Crate path: {}".format(crate_path))
-        import glob
-        filenames = glob.glob(os.path.join(crate_path, "*"))
-        available_commands = [x for x in [os.path.basename(x) for x in filenames] if x[0] != "_"]
-        print("Available commands: {}".format(available_commands))
 
 if __name__ == '__main__':
     try:
