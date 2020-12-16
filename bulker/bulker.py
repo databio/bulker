@@ -149,7 +149,7 @@ def build_argparser():
 
 
     sps["load"].add_argument(
-            "-f", "--manifest",
+            "-m", "--manifest",
             help="File path to manifest. Can be a remote URL or local file.")
 
     sps["load"].add_argument(
@@ -162,8 +162,12 @@ def build_argparser():
             "executables. Default: False")
     
     sps["load"].add_argument(
-            "-r", "--force", action='store_true', default=False,
+            "-f", "--force", action='store_true', default=False,
             help="Force overwrite? Default: False")
+
+    sps["load"].add_argument(
+            "-r", "--recurse", action='store_true', default=False,
+            help="Recursively re-load imported manifests? Default: False")    
 
     sps["run"].add_argument(
             "cmd", metavar="command", nargs=argparse.REMAINDER, 
@@ -298,9 +302,23 @@ def bulker_inspect(bcfg, manifest, cratevars, crate_path=None,
 
     return x
 
+def get_imports(manifest, bcfg, recurse=False):
+
+    imports = set()
+    if hasattr(manifest.manifest, "imports") and manifest.manifest.imports:
+        for imp in manifest.manifest.imports:
+            imp_manifest, imp_cratevars = load_remote_registry_path(bcfg, 
+                                                    imp, None)
+            imports.add(imp)
+            if recurse:
+                imports = imports.union(get_imports(imp_manifest, bcfg, recurse=recurse))
+    return imports
+
+
+
 def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
                 shell_jinja2_template, crate_path=None, 
-                build=False, force=False):
+                build=False, force=False, recurse=False):
     manifest_name = cratevars['crate']
     # We store them in folder: namespace/crate/version
     if not crate_path:
@@ -340,26 +358,30 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
     # First add any imports
 
     mkdir(crate_path, exist_ok=True)
-    if hasattr(manifest.manifest, "imports") and manifest.manifest.imports:
-        for imp in manifest.manifest.imports:
-            imp_cratevars = parse_registry_path(imp)
-            imp_crate_path = os.path.join(bcfg.bulker.default_crate_folder,
-                                  imp_cratevars['namespace'],
-                                  imp_cratevars['crate'],
-                                  imp_cratevars['tag'])
-            if not os.path.isabs(imp_crate_path):
-                imp_crate_path = os.path.join(os.path.dirname(bcfg._file_path), imp_crate_path)            
-            if not os.path.exists(imp_crate_path):
-                _LOGGER.error("Can't import crate '{}' from '{}'".format(imp, imp_crate_path))
-                # Recursively load any non-existant imported crates.
-                imp_manifest, imp_cratevars = load_remote_registry_path(bcfg, 
-                                                        imp, None)
-                _LOGGER.debug(imp_manifest)
-                _LOGGER.debug(imp_cratevars)
-                bulker_load(imp_manifest, imp_cratevars, bcfg, exe_jinja2_template,
-                shell_jinja2_template, crate_path=None, build=build, force=force)
-            _LOGGER.info("Importing crate '{}' from '{}'.".format(imp, imp_crate_path))
-            copy_tree(imp_crate_path, crate_path)
+    imps = get_imports(manifest, bcfg, recurse)
+    for imp in imps: 
+        reload_import = recurse
+        imp_cratevars = parse_registry_path(imp)
+        imp_crate_path = os.path.join(bcfg.bulker.default_crate_folder,
+                              imp_cratevars['namespace'],
+                              imp_cratevars['crate'],
+                              imp_cratevars['tag'])
+        if not os.path.isabs(imp_crate_path):
+            imp_crate_path = os.path.join(os.path.dirname(bcfg._file_path), imp_crate_path)            
+        if not os.path.exists(imp_crate_path):
+            _LOGGER.error("Nonexistent crate: '{}' from '{}'. Reloading...".format(imp, imp_crate_path))
+            reload_import = True
+        if reload_import:
+            # Recursively load imported crates.
+            _LOGGER.error("Recursively loading imported crate '{}' from '{}'".format(imp, imp_crate_path))
+            imp_manifest, imp_cratevars = load_remote_registry_path(bcfg, 
+                                                    imp, None)
+            _LOGGER.debug(imp_manifest)
+            _LOGGER.debug(imp_cratevars)
+            bulker_load(imp_manifest, imp_cratevars, bcfg, exe_jinja2_template,
+            shell_jinja2_template, crate_path=None, build=build, force=force, recurse=False)
+        _LOGGER.info("Importing crate '{}' from '{}'.".format(imp, imp_crate_path))
+        copy_tree(imp_crate_path, crate_path)
 
     # should put this in a function
     def host_tool_specific_args(bcfg, pkg, hosttool_arg_key):
@@ -1033,7 +1055,8 @@ def main():
                     shell_jinja2_template=shell_template_jinja, 
                     crate_path=args.path,
                     build=build_template_jinja,
-                    force=args.force)
+                    force=args.force,
+                    recurse=args.recurse)
 
     if args.command == "inspect":
         if args.crate_registry_paths == "":
