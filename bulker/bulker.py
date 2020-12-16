@@ -351,7 +351,7 @@ def bulker_reload(bcfg):
             bulker_load(manifest, cratevars, bcfg, 
                     exe_jinja2_template=exe_template_jinja, 
                     shell_jinja2_template=shell_template_jinja, 
-                    crate_path=path,
+                    crate_path=None,
                     build=build_template_jinja,
                     force=True,
                     recurse=False)
