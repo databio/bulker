@@ -45,7 +45,7 @@ All you need to do is use the `echo` mode to have bulker activate the environmen
 
 ## How can I make bulker retain my user ID on MacOS?
 
-If you're getting messages like 'I have no name!" using docker containers on MacOS, this is because MacOS doesn't use the traditional unix user system (using `etc/passwd` for users) unless it is operating in single-user mode. Instead, it uses a system called Open Directory DirectoryService. See [this stackoverflow question](https://superuser.com/questions/191330/users-dont-appear-in-etc-passwd-on-mac-os-x/191333#191333) for more information. To accommodate this, if you're using mMcOS outside of single-user mode, bulker has a script called [fix_mac_user.sh](https://github.com/databio/bulker/blob/master/fix_mac_user.sh). If you run this script, it will create a temporary mapping that plays nice with the `/etc/passwd` system required by the containers, and will correctly map your user.
+If you're getting messages like 'I have no name!" using docker containers on MacOS, this is because MacOS doesn't use the traditional unix user system (using `etc/passwd` for users) unless it is operating in single-user mode. Instead, it uses a system called Open Directory DirectoryService. See [this stackoverflow question](https://superuser.com/questions/191330/users-dont-appear-in-etc-passwd-on-mac-os-x/191333#191333) for more information. To accommodate this, if you're using MacOS outside of single-user mode, bulker has a script called [fix_mac_user.sh](https://github.com/databio/bulker/blob/master/fix_mac_user.sh). If you run this script, it will create a temporary mapping that plays nice with the `/etc/passwd` system required by the containers, and will correctly map your user.
 
 
 ## Help! Bulker can't find my config file.
