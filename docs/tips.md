@@ -36,6 +36,13 @@ bulker-activate() {
 
 Restart your shell, and from now on use `bulker-activate` instead of `bulker activate`.
 
+## How should I use `bulker activate` from within a script?
+
+If you're trying to use `bulker activate` to set up a controlled environment from within a script, you may have run into the problem mentioned above regarding bulker creating a new shell. By default, `bulker activate` will create a new shell, which means if you run it from within a script, this creates an interactive environment which will stop the running of the shell until it has a user exist. That's not what you want.
+
+All you need to do is use the `echo` mode to have bulker activate the environment in the current shell instead of creating a new one. So, something like `eval "$(bulker activate -e namespace/rate)"` instead of a raw `bulker activate` will do the trick.
+
+
 ## How can I make bulker retain my user ID on MacOS?
 
 If you're getting messages like 'I have no name!" using docker containers on MacOS, this is because MacOS doesn't use the traditional unix user system (using `etc/passwd` for users) unless it is operating in single-user mode. Instead, it uses a system called Open Directory DirectoryService. See [this stackoverflow question](https://superuser.com/questions/191330/users-dont-appear-in-etc-passwd-on-mac-os-x/191333#191333) for more information. To accommodate this, if you're using mMcOS outside of single-user mode, bulker has a script called [fix_mac_user.sh](https://github.com/databio/bulker/blob/master/fix_mac_user.sh). If you run this script, it will create a temporary mapping that plays nice with the `/etc/passwd` system required by the containers, and will correctly map your user.
