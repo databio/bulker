@@ -100,6 +100,7 @@ def build_argparser():
         "inspect": "View name and list of commands for a crate",
         "list": "List available bulker crates",
         "load": "Load a crate from a manifest",
+        "reload": "Reload all previously loaded manifests",
         "activate": "Activate a crate by adding it to PATH",
         "run": "Run a command in a crate",
         "cwl2man": "Build a manifest from cwl tool descriptions"
@@ -163,7 +164,7 @@ def build_argparser():
 
 
     sps["load"].add_argument(
-            "-f", "--manifest",
+            "-m", "--manifest",
             help="File path to manifest. Can be a remote URL or local file.")
 
     sps["cwl2man"].add_argument(
@@ -184,8 +185,12 @@ def build_argparser():
             "executables. Default: False")
     
     sps["load"].add_argument(
-            "-r", "--force", action='store_true', default=False,
+            "-f", "--force", action='store_true', default=False,
             help="Force overwrite? Default: False")
+
+    sps["load"].add_argument(
+            "-r", "--recurse", action='store_true', default=False,
+            help="Recursively re-load imported manifests? Default: False")    
 
     sps["run"].add_argument(
             "cmd", metavar="command", nargs=argparse.REMAINDER, 
@@ -216,10 +221,10 @@ def select_bulker_config(filepath):
     _LOGGER.debug("Selected bulker config: {}".format(bulkercfg))
     return bulkercfg
 
-# parse_crate_string("abc")
-# parse_crate_string("abc:123")
-# parse_crate_string("name/abc:123")
-# parse_crate_string("http://www.databio.org")
+# parse_registry_path("abc")
+# parse_registry_path("abc:123")
+# parse_registry_path("name/abc:123")
+# parse_registry_path("http://www.databio.org")
 
 def parse_registry_path(path, default_namespace="bulker"):
     return prp(path, defaults=[
@@ -320,9 +325,66 @@ def bulker_inspect(bcfg, manifest, cratevars, crate_path=None,
 
     return x
 
+def get_imports(manifest, bcfg, recurse=False):
+
+    imports = set()
+    if not manifest:
+        return imports
+    if hasattr(manifest.manifest, "imports") and manifest.manifest.imports:
+        for imp in manifest.manifest.imports:
+            imp_manifest, imp_cratevars = load_remote_registry_path(bcfg, 
+                                                    imp, None)
+            imports.add(imp)
+            if recurse:
+                imports = imports.union(get_imports(imp_manifest, bcfg, recurse=recurse))
+    return imports
+
+
+def bulker_reload(bcfg):
+    """
+    Reloads all previously loaded crates in the bulker config.
+    """
+
+    fmt = "{namespace}/{crate}:{tag}"
+    all_manifests_to_load = set()
+
+    _LOGGER.info("Recursively identifying all loaded manifests...")
+    if bcfg.bulker.crates:
+            for namespace, crates in bcfg.bulker.crates.items():
+                for crate, tags in crates.items():
+                    for tag, path in tags.items():
+                        crate_registry_path = fmt.format(namespace=namespace, crate=crate, 
+                                                        tag=tag, path=path)
+                        all_manifests_to_load.add(crate_registry_path)
+                        try:
+                            manifest, cratevars = load_remote_registry_path(bcfg, 
+                                                crate_registry_path,
+                                                None)
+                        except Exception as e:
+                            pass                
+                        all_manifests_to_load = all_manifests_to_load.union(get_imports(manifest, bcfg, recurse=True))
+
+    print("Loading identified manifests...")
+    for crate_registry_path in all_manifests_to_load:
+        manifest, cratevars, exe_template_jinja, shell_template_jinja, build_template_jinja = prep_load(
+                                                                        bcfg, crate_registry_path, None, False)
+        _LOGGER.info("Loading manifest: {}".format(crate_registry_path))
+        if manifest:
+            bulker_load(manifest, cratevars, bcfg, 
+                    exe_jinja2_template=exe_template_jinja, 
+                    shell_jinja2_template=shell_template_jinja, 
+                    crate_path=None,
+                    build=build_template_jinja,
+                    force=True,
+                    recurse=False)
+
+
+
+
+
 def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
                 shell_jinja2_template, crate_path=None, 
-                build=False, force=False):
+                build=False, force=False, recurse=False):
     manifest_name = cratevars['crate']
     # We store them in folder: namespace/crate/version
     if not crate_path:
@@ -362,26 +424,30 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
     # First add any imports
 
     mkdir(crate_path, exist_ok=True)
-    if hasattr(manifest.manifest, "imports") and manifest.manifest.imports:
-        for imp in manifest.manifest.imports:
-            imp_cratevars = parse_registry_path(imp)
-            imp_crate_path = os.path.join(bcfg.bulker.default_crate_folder,
-                                  imp_cratevars['namespace'],
-                                  imp_cratevars['crate'],
-                                  imp_cratevars['tag'])
-            if not os.path.isabs(imp_crate_path):
-                imp_crate_path = os.path.join(os.path.dirname(bcfg._file_path), imp_crate_path)            
-            if not os.path.exists(imp_crate_path):
-                _LOGGER.error("Can't import crate '{}' from '{}'".format(imp, imp_crate_path))
-                # Recursively load any non-existant imported crates.
-                imp_manifest, imp_cratevars = load_remote_registry_path(bcfg, 
-                                                        imp, None)
-                _LOGGER.debug(imp_manifest)
-                _LOGGER.debug(imp_cratevars)
-                bulker_load(imp_manifest, imp_cratevars, bcfg, exe_jinja2_template,
-                shell_jinja2_template, crate_path=None, build=build, force=force)
-            _LOGGER.info("Importing crate '{}' from '{}'.".format(imp, imp_crate_path))
-            copy_tree(imp_crate_path, crate_path)
+    imps = get_imports(manifest, bcfg, recurse)
+    for imp in imps: 
+        reload_import = recurse
+        imp_cratevars = parse_registry_path(imp)
+        imp_crate_path = os.path.join(bcfg.bulker.default_crate_folder,
+                              imp_cratevars['namespace'],
+                              imp_cratevars['crate'],
+                              imp_cratevars['tag'])
+        if not os.path.isabs(imp_crate_path):
+            imp_crate_path = os.path.join(os.path.dirname(bcfg._file_path), imp_crate_path)            
+        if not os.path.exists(imp_crate_path):
+            _LOGGER.error("Nonexistent crate: '{}' from '{}'. Reloading...".format(imp, imp_crate_path))
+            reload_import = True
+        if reload_import:
+            # Recursively load imported crates.
+            _LOGGER.error("Recursively loading imported crate '{}' from '{}'".format(imp, imp_crate_path))
+            imp_manifest, imp_cratevars = load_remote_registry_path(bcfg, 
+                                                    imp, None)
+            _LOGGER.debug(imp_manifest)
+            _LOGGER.debug(imp_cratevars)
+            bulker_load(imp_manifest, imp_cratevars, bcfg, exe_jinja2_template,
+            shell_jinja2_template, crate_path=None, build=build, force=force, recurse=False)
+        _LOGGER.info("Importing crate '{}' from '{}'.".format(imp, imp_crate_path))
+        copy_tree(imp_crate_path, crate_path)
 
     # should put this in a function
     def host_tool_specific_args(bcfg, pkg, hosttool_arg_key):
@@ -490,7 +556,12 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
             local_exe = find_executable(cmd)
             path = os.path.join(crate_path, cmd)
             host_cmdlist.append(cmd)
-            os.symlink(local_exe, path)
+            try:
+                os.symlink(local_exe, path)
+            except FileExistsError:
+                _LOGGER.info("Overwriting existing file with link: {}, {}".format(path, local_exe))
+                os.unlink(path)
+                os.symlink(local_exe, path)
 
             # The old way: TODO: REMOVE THIS
             if False:
@@ -872,11 +943,12 @@ def load_remote_registry_path(bulker_config, registry_path, filepath=None):
             response = urlopen(filepath)
         except HTTPError as e:
             if cratevars:
-                _LOGGER.error("The requested remote manifest '{}' is not found.".format(
+                _LOGGER.error("The requested remote manifest '{}' is not found. Not loaded.".format(
                     filepath))
-                sys.exit(1)
+                response=None
+                return None, None
             else:
-                raise e
+                raise Exception("No remote manifest found")
         data = response.read()      # a `bytes` object
         text = data.decode('utf-8')
         manifest_lines = yacman.YacAttMap(yamldata=text)
@@ -908,6 +980,68 @@ def mkabs(path, reldir=None):
         return os.path.abspath(xpand(path))
 
     return os.path.join(xpand(reldir), xpand(path))
+
+def prep_load(bulker_config, crate_registry_paths, manifest=None, build=False):
+    """ 
+    Prepares stuff for a bulker load
+    """
+    
+    manifest, cratevars = load_remote_registry_path(bulker_config, 
+                                                    crate_registry_paths,
+                                                    manifest)
+    exe_template_jinja = None
+    build_template_jinja = None
+    shell_template_jinja = None
+
+    exe_template = mkabs(bulker_config.bulker.executable_template,
+                         os.path.dirname(bulker_config._file_path))
+    build_template = mkabs(bulker_config.bulker.build_template, 
+                           os.path.dirname(bulker_config._file_path))
+    try:
+        shell_template = mkabs(bulker_config.bulker.shell_template,
+                         os.path.dirname(bulker_config._file_path))        
+    except AttributeError:
+        _LOGGER.error("You need to re-initialize your bulker config or add a 'shell_template' attribute.")
+        sys.exit(1)
+
+
+    try:
+        assert(os.path.exists(exe_template))
+    except AssertionError:
+        _LOGGER.error("Bulker config points to a missing executable template: {}".format(exe_template))
+        sys.exit(1)
+
+    with open(exe_template, 'r') as f:
+    # with open(DOCKER_TEMPLATE, 'r') as f:
+        contents = f.read()
+        exe_template_jinja = jinja2.Template(contents)
+
+    try:
+        assert(os.path.exists(shell_template))
+    except AssertionError:
+        _LOGGER.error("Bulker config points to a missing shell template: {}".format(shell_template))
+        sys.exit(1)
+
+    with open(shell_template, 'r') as f:
+    # with open(DOCKER_TEMPLATE, 'r') as f:
+        contents = f.read()
+        shell_template_jinja = jinja2.Template(contents)
+
+
+    if build:
+        try:
+            assert(os.path.exists(build_template))
+        except AssertionError:
+            _LOGGER.error("Bulker config points to a missing build template: {}".format(build_template))
+            sys.exit(1)
+
+        _LOGGER.info("Building images with template: {}".format(build_template))
+        with open(build_template, 'r') as f:
+            contents = f.read()
+            build_template_jinja = jinja2.Template(contents)
+    
+    return manifest, cratevars, exe_template_jinja, shell_template_jinja, build_template_jinja
+
 
 
 def parse_cwl(cwl_file):
@@ -1117,68 +1251,22 @@ def main():
 
     if args.command == "load":
         bulker_config.make_writable()
-        manifest, cratevars = load_remote_registry_path(bulker_config, 
-                                                        args.crate_registry_paths,
-                                                        args.manifest)
-        exe_template_jinja = None
-        build_template_jinja = None
-        shell_template_jinja = None
-
-        exe_template = mkabs(bulker_config.bulker.executable_template,
-                             os.path.dirname(bulker_config._file_path))
-        build_template = mkabs(bulker_config.bulker.build_template, 
-                               os.path.dirname(bulker_config._file_path))        
-        try:
-            shell_template = mkabs(bulker_config.bulker.shell_template,
-                             os.path.dirname(bulker_config._file_path))        
-        except AttributeError:
-            _LOGGER.error("You need to re-initialize your bulker config or add a 'shell_template' attribute.")
-            sys.exit(1)
-
-
-        try:
-            assert(os.path.exists(exe_template))
-        except AssertionError:
-            _LOGGER.error("Bulker config points to a missing executable template: {}".format(exe_template))
-            sys.exit(1)
-
-        with open(exe_template, 'r') as f:
-        # with open(DOCKER_TEMPLATE, 'r') as f:
-            contents = f.read()
-            exe_template_jinja = jinja2.Template(contents)
-
-        try:
-            assert(os.path.exists(shell_template))
-        except AssertionError:
-            _LOGGER.error("Bulker config points to a missing shell template: {}".format(shell_template))
-            sys.exit(1)
-
-        with open(shell_template, 'r') as f:
-        # with open(DOCKER_TEMPLATE, 'r') as f:
-            contents = f.read()
-            shell_template_jinja = jinja2.Template(contents)
-
-
-
-
-        if args.build:
-            try:
-                assert(os.path.exists(build_template))
-            except AssertionError:
-                _LOGGER.error("Bulker config points to a missing build template: {}".format(build_template))
-                sys.exit(1)
-
-            _LOGGER.info("Building images with template: {}".format(build_template))
-            with open(build_template, 'r') as f:
-                contents = f.read()
-                build_template_jinja = jinja2.Template(contents)
+        manifest, cratevars, exe_template_jinja, shell_template_jinja, build_template_jinja = prep_load(
+            bulker_config, args.crate_registry_paths, args.manifest, args.build)
 
         bulker_load(manifest, cratevars, bulker_config, 
                     exe_jinja2_template=exe_template_jinja, 
                     shell_jinja2_template=shell_template_jinja, 
                     crate_path=args.path,
                     build=build_template_jinja,
-                    force=args.force)
+                    force=args.force,
+                    recurse=args.recurse)
+
+    if args.command == "reload":
+        bulker_config.make_writable()
+        _LOGGER.info("Reloading all manifests")
+        bulker_reload(bulker_config)
+
 
 
 

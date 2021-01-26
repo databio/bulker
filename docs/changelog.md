@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+- BREAKING CHANGE: Renamed the `bulker load` arguments: the `--manifest` short arg changed from `-f` to `-m`; `--force` changed from `-r` to `-f`. This is to be more consistent with the names. Since I doubt many people are using this in script, I don't think this will break much, if anything.
+- Added new option for `-r`, `--recurse` to `bulker load`, which recursively re-loads all imported manifests.
+- Added new `bulker reload` command, that reloads all manifests.
+
+
 ## [0.6.0] -- 2020-07-10
 - Allowed `bulker run` to gracefully handle interrupts, passing them to the child process.
 - Implemented `-p`, which doesn't update prompts, for compatibility with jupyter
