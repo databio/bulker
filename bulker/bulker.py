@@ -534,7 +534,12 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
             local_exe = find_executable(cmd)
             path = os.path.join(crate_path, cmd)
             host_cmdlist.append(cmd)
-            os.symlink(local_exe, path)
+            try:
+                os.symlink(local_exe, path)
+            except FileExistsError:
+                _LOGGER.info("Overwriting existing file with link: {}, {}".format(path, local_exe))
+                os.unlink(path)
+                os.symlink(local_exe, path)
 
             # The old way: TODO: REMOVE THIS
             if False:
