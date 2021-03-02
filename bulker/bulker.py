@@ -1192,6 +1192,8 @@ def main():
         import glob
         filenames = glob.glob(os.path.join(crate_path, "*"))
         available_commands = [x for x in [os.path.basename(x) for x in filenames] if x[0] != "_"]
+        available_commands.sort(key=lambda y: y.lower())
+
         print("Available commands: {}".format(available_commands))
 
     if args.command == "list":
