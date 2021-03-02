@@ -100,6 +100,7 @@ def build_argparser():
         "inspect": "View name and list of commands for a crate",
         "list": "List available bulker crates",
         "load": "Load a crate from a manifest",
+        "unload": "Remove a loaded crate from bulker config",
         "reload": "Reload all previously loaded manifests",
         "activate": "Activate a crate by adding it to PATH",
         "run": "Run a command in a crate",
@@ -134,7 +135,7 @@ def build_argparser():
         sps[cmd] = add_subparser(cmd, desc)
 
     # Add config option to relevant subparsers
-    for cmd in ["init", "list", "load", "activate", "run", "inspect", "envvar"]:
+    for cmd in ["init", "list", "load", "unload", "activate", "run", "inspect", "envvar"]:
         sps[cmd].add_argument(
             "-c", "--config", required=(cmd == "init"),
             help="Bulker configuration file.")
@@ -143,7 +144,7 @@ def build_argparser():
             "-e", "--engine", choices={"docker", "singularity", }, default=None,
             help="Choose container engine. Default: 'guess'")
 
-    for cmd in ["run", "activate", "load"]:
+    for cmd in ["run", "activate", "load", "unload"]:
         sps[cmd].add_argument(
             "crate_registry_paths", metavar="crate-registry-paths", type=str,
             help="One or more comma-separated registry path strings"
@@ -161,8 +162,6 @@ def build_argparser():
         sps[cmd].add_argument(
             "-s", "--strict", action='store_true', default=False,
             help="Use strict environment (purges PATH of other commands)?")
-
-
 
     sps["load"].add_argument(
             "-m", "--manifest",
@@ -1164,6 +1163,46 @@ def parse_cwl(cwl_file):
             "docker_command": base_command}
 
 
+def bulker_unload(bulker_config, crate_registry_paths):
+    cratelist = parse_registry_paths(crate_registry_paths,
+                                     bulker_config.bulker.default_namespace)
+    _LOGGER.info("Unloading crates: {}".format(crate_registry_paths))
+    removed_crates = []
+    for cratemeta in cratelist:
+        namespace = cratemeta['namespace']
+        if namespace in bulker_config.bulker.crates:
+            crate = cratemeta['crate']
+            # print(bulker_config.bulker.crates[namespace])
+            if crate in bulker_config.bulker.crates[namespace]:
+                tag = cratemeta['tag']
+                # print(bulker_config.bulker.crates[namespace][crate])
+                if tag in bulker_config.bulker.crates[namespace][crate]:
+                    regpath = "{namespace}/{crate}:{tag}".format(
+                        namespace=namespace,
+                        crate=crate, 
+                        tag=tag)
+                    _LOGGER.info("Removing crate: '{}'".format(regpath))
+                    bulker_config.make_writable()
+                    # bulker_config.bulker.crates[namespace][crate][tag] = None
+                    crate_path = bulker_config.bulker.crates[namespace][crate][tag]
+                    del bulker_config.bulker.crates[namespace][crate][tag]
+                    try:
+                        shutil.rmtree(crate_path)
+                    except:
+                        _LOGGER.error("Error removing crate at {}. Did your crate path change? Remove it manually.".format(crate_path))
+
+                    if len(bulker_config.bulker.crates[namespace][crate]) ==0:
+                        _LOGGER.info("Last tag!")
+                        del bulker_config.bulker.crates[namespace][crate]
+                    bulker_config.write()
+                    removed_crates.append(regpath)
+
+    if len(removed_crates) > 0:
+        _LOGGER.info("Removed crates: {}".format(str(removed_crates)))
+    else:
+        _LOGGER.info("No crates found with that name to remove.")
+
+
 def main():
     """ Primary workflow """
 
@@ -1330,7 +1369,8 @@ def main():
         _LOGGER.info("Reloading all manifests")
         bulker_reload(bulker_config)
 
-
+    if args.command == "unload":
+        bulker_unload(bulker_config, args.crate_registry_paths)
 
 
 if __name__ == '__main__':

@@ -1,14 +1,16 @@
 # Changelog
 
-## Unreleased
+## [0.7.0] -- 2021-03-02
+- EXPERIMENTAL: Added `bulker cwl2man` to create a bulker manifest from a CWL file.
 - BREAKING CHANGE: Renamed the `bulker load` arguments: the `--manifest` short arg changed from `-f` to `-m`; `--force` changed from `-r` to `-f`. This is to be more consistent with the names. Since I doubt many people are using this in script, I don't think this will break much, if anything.
 - Added new option for `-r`, `--recurse` to `bulker load`, which recursively re-loads all imported manifests.
 - Added new `bulker reload` command, that reloads all manifests.
-
+- Added `bulker envvar`, which allows you to list, add (`-a VAR`), or remove (`-r VAR`) environment variables to the bulker config from the CLI.
+- Added `bulker unload` to remove a loaded manifest.
 
 ## [0.6.0] -- 2020-07-10
 - Allowed `bulker run` to gracefully handle interrupts, passing them to the child process.
-- Implemented `-p`, which doesn't update prompts, for compatibility with jupyter
+- Implemented `-p`, which doesn't update prompts, for compatibility with jupyter notebooks
 - Fixed a bug with using the default config
 - Added capability to exclude volumes from specific containers
 - Fixed a bug with singularity exec template
