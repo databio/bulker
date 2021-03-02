@@ -133,7 +133,7 @@ def build_argparser():
         sps[cmd] = add_subparser(cmd, desc)
 
     # Add config option to relevant subparsers
-    for cmd in ["init", "list", "load", "activate", "run"]:
+    for cmd in ["init", "list", "load", "activate", "run", "inspect"]:
         sps[cmd].add_argument(
             "-c", "--config", required=(cmd == "init"),
             help="Bulker configuration file.")
@@ -1165,6 +1165,11 @@ def main():
         bm.write(args.manifest)
         sys.exit(0)
 
+    # Any remaining commands require config so we process it now.
+
+    bulkercfg = select_bulker_config(args.config)
+    bulker_config = yacman.YacAttMap(filepath=bulkercfg, writable=False)
+    _LOGGER.info("Bulker config: {}".format(bulkercfg))
 
     if args.command == "inspect":
         if args.crate_registry_paths == "":
@@ -1174,9 +1179,6 @@ def main():
                                                     args.crate_registry_paths,
                                                     None)
         manifest_name = cratevars['crate']
-
-        
-        print("Bulker manifest: {}".format(args.crate_registry_paths))
         crate_path = os.path.join(bulker_config.bulker.default_crate_folder,
                                   cratevars['namespace'],
                                   manifest_name,
@@ -1184,16 +1186,13 @@ def main():
         if not os.path.isabs(crate_path):
             crate_path = os.path.join(os.path.dirname(bcfg._file_path), crate_path)
         print("Crate path: {}".format(crate_path))
+
+        
+        print("Bulker manifest: {}".format(args.crate_registry_paths))
         import glob
         filenames = glob.glob(os.path.join(crate_path, "*"))
         available_commands = [x for x in [os.path.basename(x) for x in filenames] if x[0] != "_"]
         print("Available commands: {}".format(available_commands))
-
-    # Any remaining commands require config so we process it now.
-
-    bulkercfg = select_bulker_config(args.config)
-    bulker_config = yacman.YacAttMap(filepath=bulkercfg, writable=False)
-
 
     if args.command == "list":
         # Output header via logger and content via print so the user can
@@ -1217,7 +1216,6 @@ def main():
 
     # For all remaining commands we need a crate identifier
 
-    _LOGGER.info("Bulker config: {}".format(bulkercfg))
     if args.command == "activate":
         try:
             cratelist = parse_registry_paths(args.crate_registry_paths,
