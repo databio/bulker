@@ -591,7 +591,10 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
                     _LOGGER.error("------ Error building. Build script used: ------")
                     _LOGGER.error(buildscript)
                     _LOGGER.error("------------------------------------------------")
-                _LOGGER.info("Container available at: {cmd}".format(cmd=pkg["singularity_fullpath"]))
+                if pkg.container_engine == "singularity":
+                    _LOGGER.info("Image available at: {cmd}".format(cmd=pkg["singularity_fullpath"]))
+                else:
+                    _LOGGER.info("Docker image available as: {cmd}".format(cmd=pkg.docker_image))
 
     # host commands
     host_cmdlist = []
