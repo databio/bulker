@@ -20,6 +20,7 @@ nav:
     - Inspect a crate: inspect.md
     - Import crates: import.md
     - Start an exploratory shell: shell.md
+    - Use bulker in a multi-user environment: multi_user_environment.md
     - Host- and tool-specific settings: settings.md
     - Use a bulker registry: registry.md
     - Use images with entrypoints: entrypoint.md
