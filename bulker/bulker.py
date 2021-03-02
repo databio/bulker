@@ -104,7 +104,7 @@ def build_argparser():
         "reload": "Reload all previously loaded manifests",
         "activate": "Activate a crate by adding it to PATH",
         "run": "Run a command in a crate",
-        "envvar": "List, add, or remove environment variables to bulker config",
+        "envvars": "List, add, or remove environment variables to bulker config",
         "cwl2man": "Build a manifest from cwl tool descriptions"
     }
 
@@ -135,7 +135,7 @@ def build_argparser():
         sps[cmd] = add_subparser(cmd, desc)
 
     # Add config option to relevant subparsers
-    for cmd in ["init", "list", "load", "unload", "activate", "run", "inspect", "envvar"]:
+    for cmd in ["init", "list", "load", "unload", "activate", "run", "inspect", "envvars"]:
         sps[cmd].add_argument(
             "-c", "--config", required=(cmd == "init"),
             help="Bulker configuration file.")
@@ -208,11 +208,11 @@ def build_argparser():
             "-s", "--simple", action='store_true', default=False,
             help="Echo only crate registry paths, not local file paths.")
 
-    sps["envvar"].add_argument(
+    sps["envvars"].add_argument(
             "-a", "--add",
             help="Variable to add to bulker config file.")
 
-    sps["envvar"].add_argument(
+    sps["envvars"].add_argument(
             "-r", "--remove",
             help="Variable to remove to bulker config file.")
 
@@ -265,7 +265,7 @@ def _is_writable(folder, check_exist=False, create=False):
     return is_writable(folder, check_exist, create)
 
 
-def bulker_envvar_add(bulker_config, variable):
+def bulker_envvars_add(bulker_config, variable):
     """
     Add an environment variable to your bulker config.
     """
@@ -285,7 +285,7 @@ def bulker_envvar_add(bulker_config, variable):
         bulker_config.bulker.envvars.append(variable)
     bulker_config.write()
 
-def bulker_envvar_remove(bulker_config, variable):
+def bulker_envvars_remove(bulker_config, variable):
     """
     Add an environment variable to your bulker config.
     """
@@ -1260,16 +1260,16 @@ def main():
     bulker_config = yacman.YacAttMap(filepath=bulkercfg, writable=False)
     _LOGGER.info("Bulker config: {}".format(bulkercfg))
 
-    if args.command == "envvar":
+    if args.command == "envvars":
         if args.add:
             _LOGGER.debug("Adding env var")
             _is_writable(os.path.dirname(bulkercfg), check_exist=False)
-            bulker_envvar_add(bulker_config, args.add)
+            bulker_envvars_add(bulker_config, args.add)
         if args.remove:
             _LOGGER.debug("Removing env var")
             _is_writable(os.path.dirname(bulkercfg), check_exist=False)
-            bulker_envvar_remove(bulker_config, args.remove)
-        _LOGGER.info("Envvar list: {}".format(bulker_config.bulker.envvars))
+            bulker_envvars_remove(bulker_config, args.remove)
+        _LOGGER.info("Envvars list: {}".format(bulker_config.bulker.envvars))
         sys.exit(0)           
 
 
