@@ -103,6 +103,7 @@ def build_argparser():
         "reload": "Reload all previously loaded manifests",
         "activate": "Activate a crate by adding it to PATH",
         "run": "Run a command in a crate",
+        "envvar": "List, add, or remove environment variables to bulker config",
         "cwl2man": "Build a manifest from cwl tool descriptions"
     }
 
@@ -133,7 +134,7 @@ def build_argparser():
         sps[cmd] = add_subparser(cmd, desc)
 
     # Add config option to relevant subparsers
-    for cmd in ["init", "list", "load", "activate", "run", "inspect"]:
+    for cmd in ["init", "list", "load", "activate", "run", "inspect", "envvar"]:
         sps[cmd].add_argument(
             "-c", "--config", required=(cmd == "init"),
             help="Bulker configuration file.")
@@ -208,6 +209,14 @@ def build_argparser():
             "-s", "--simple", action='store_true', default=False,
             help="Echo only crate registry paths, not local file paths.")
 
+    sps["envvar"].add_argument(
+            "-a", "--add",
+            help="Variable to add to bulker config file.")
+
+    sps["envvar"].add_argument(
+            "-r", "--remove",
+            help="Variable to remove to bulker config file.")
+
     return parser
 
 
@@ -255,6 +264,48 @@ def parse_registry_paths(paths, default_namespace="bulker"):
 def _is_writable(folder, check_exist=False, create=False):
     from ubiquerg import is_writable
     return is_writable(folder, check_exist, create)
+
+
+def bulker_envvar_add(bulker_config, variable):
+    """
+    Add an environment variable to your bulker config.
+    """
+    if not bulker_config:
+        _LOGGER.error("You must specify a file path to initialize.")
+        return   
+
+    if not variable:
+        _LOGGER.error("You must specify a variable.")
+        return
+
+    bulker_config.make_writable()
+    if variable in bulker_config.bulker.envvars:
+        _LOGGER.info("Variable '{}' already present".format(variable))
+    else:
+        _LOGGER.info("Adding variable '{}'".format(variable))
+        bulker_config.bulker.envvars.append(variable)
+    bulker_config.write()
+
+def bulker_envvar_remove(bulker_config, variable):
+    """
+    Add an environment variable to your bulker config.
+    """
+    if not bulker_config:
+        _LOGGER.error("You must specify a file path to initialize.")
+        return   
+
+    if not variable:
+        _LOGGER.error("You must specify a variable.")
+        return
+
+    bulker_config.make_writable()
+    if variable in bulker_config.bulker.envvars:
+        _LOGGER.info("Removing variable '{}'".format(variable))
+        bulker_config.bulker.envvars.remove(variable)
+    else:
+        _LOGGER.info("Variable not found '{}'".format(variable))
+    bulker_config.write()
+
 
 def bulker_init(config_path, template_config_path, container_engine=None):
     """
@@ -1137,7 +1188,6 @@ def main():
         bulker_init(bulkercfg, DEFAULT_CONFIG_FILEPATH, args.engine)
         sys.exit(0)      
 
-
     if args.command == "cwl2man":
         bm = yacman.YacAttMap()
         bm.manifest = yacman.YacAttMap()
@@ -1170,6 +1220,19 @@ def main():
     bulkercfg = select_bulker_config(args.config)
     bulker_config = yacman.YacAttMap(filepath=bulkercfg, writable=False)
     _LOGGER.info("Bulker config: {}".format(bulkercfg))
+
+    if args.command == "envvar":
+        if args.add:
+            _LOGGER.debug("Adding env var")
+            _is_writable(os.path.dirname(bulkercfg), check_exist=False)
+            bulker_envvar_add(bulker_config, args.add)
+        if args.remove:
+            _LOGGER.debug("Removing env var")
+            _is_writable(os.path.dirname(bulkercfg), check_exist=False)
+            bulker_envvar_remove(bulker_config, args.remove)
+        _LOGGER.info("Envvar list: {}".format(bulker_config.bulker.envvars))
+        sys.exit(0)           
+
 
     if args.command == "inspect":
         if args.crate_registry_paths == "":
