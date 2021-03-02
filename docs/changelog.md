@@ -21,7 +21,7 @@
 - Added custom shell prompts (experimental!)
 - Added `bulker inspect`
 - Added env variables $BULKERCRATE, BULKERPROMPT, and BULKERSHELL.
-- Changed the behavior of normal mode to set bulker path *after* calling the  rcfile.
+- Changed the behavior of normal mode to set bulker path *after* calling the rcfile.
 - Changed built-in singularity template to accommodate singularity version 3
 - Changed method for accommodating zshell.
 - Removed support for python 3.4
