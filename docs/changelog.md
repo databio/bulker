@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.7.1] -- Unreleased
+## [0.7.1] -- 2021-03-03
 -- Fixed bug in bulker reload.
 
 ## [0.7.0] -- 2021-03-02
