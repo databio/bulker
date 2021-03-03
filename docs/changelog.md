@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.7.1] -- 2021-03-03
+-- Fixed bug in bulker reload.
+
 ## [0.7.0] -- 2021-03-02
 - EXPERIMENTAL: Added `bulker cwl2man` to create a bulker manifest from a CWL file.
 - BREAKING CHANGE: Renamed the `bulker load` arguments: the `--manifest` short arg changed from `-f` to `-m`; `--force` changed from `-r` to `-f`. This is to be more consistent with the names. Since I doubt many people are using this in script, I don't think this will break much, if anything.

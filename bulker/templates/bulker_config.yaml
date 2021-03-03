@@ -3,7 +3,7 @@ bulker:
   envvars: ['DISPLAY']
   registry_url: http://hub.bulker.io/
   shell_path: ${SHELL}
-  shell_rc: ${HOME}/.bashrc
+  shell_rc: $HOME/.bashrc
   rcfile: start.sh
   rcfile_strict: start_strict.sh  
   default_crate_folder: ${HOME}/bulker_crates
