@@ -135,7 +135,7 @@ def build_argparser():
         sps[cmd] = add_subparser(cmd, desc)
 
     # Add config option to relevant subparsers
-    for cmd in ["init", "list", "load", "unload", "activate", "run", "inspect", "envvars"]:
+    for cmd in ["init", "list", "load", "unload", "reload", "activate", "run", "inspect", "envvars"]:
         sps[cmd].add_argument(
             "-c", "--config", required=(cmd == "init"),
             help="Bulker configuration file.")
