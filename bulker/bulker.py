@@ -443,7 +443,7 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
                                   manifest_name,
                                   cratevars['tag'])
     if not os.path.isabs(crate_path):
-        crate_path = os.path.join(os.path.dirname(bcfg._file_path), crate_path)
+        crate_path = os.path.join(os.path.dirname(bcfg["__internal"].file_path), crate_path)
 
     _LOGGER.debug("Crate path: {}".format(crate_path))
     _LOGGER.debug("cratevars: {}".format(cratevars))
@@ -483,7 +483,7 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
                               imp_cratevars['crate'],
                               imp_cratevars['tag'])
         if not os.path.isabs(imp_crate_path):
-            imp_crate_path = os.path.join(os.path.dirname(bcfg._file_path), imp_crate_path)            
+            imp_crate_path = os.path.join(os.path.dirname(bcfg["__internal"].file_path), imp_crate_path)            
         if not os.path.exists(imp_crate_path):
             _LOGGER.error("Nonexistent crate: '{}' from '{}'. Reloading...".format(imp, imp_crate_path))
             reload_import = True
@@ -533,7 +533,7 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
                 if os.path.isabs(pkg["singularity_image_folder"]):
                     sif = pkg["singularity_image_folder"]
                 else:
-                    sif = os.path.join(os.path.dirname(bcfg._file_path),
+                    sif = os.path.join(os.path.dirname(bcfg["__internal"].file_path),
                                        pkg["singularity_image_folder"])
 
                 pkg["singularity_fullpath"] = os.path.join(
@@ -756,10 +756,10 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False, prompt=T
         if os.path.basename(shellpath) == "bash":    
             if strict:
                 rcfile = mkabs(bulker_config.bulker.rcfile_strict,
-                                 os.path.dirname(bulker_config._file_path))
+                                 os.path.dirname(bulker_config["__internal"].file_path))
             else:
                 rcfile = mkabs(bulker_config.bulker.rcfile,
-                             os.path.dirname(bulker_config._file_path))
+                             os.path.dirname(bulker_config["__internal"].file_path))
 
             shell_list.append("--rcfile")
             shell_list.append(rcfile)
@@ -770,11 +770,11 @@ def bulker_activate(bulker_config, cratelist, echo=False, strict=False, prompt=T
             if strict:
                 rcfolder = mkabs(os.path.join(
                     os.path.dirname(bulker_config.bulker.rcfile_strict),
-                    "zsh_start_strict"), os.path.dirname(bulker_config._file_path))     
+                    "zsh_start_strict"), os.path.dirname(bulker_config["__internal"].file_path))     
             else:
                 rcfolder = mkabs(os.path.join(
                     os.path.dirname(bulker_config.bulker.rcfile_strict),
-                    "zsh_start"), os.path.dirname(bulker_config._file_path))   
+                    "zsh_start"), os.path.dirname(bulker_config["__internal"].file_path))   
 
             new_env["ZDOTDIR"] = rcfolder
             _LOGGER.debug("ZDOTDIR: {}".format(new_env["ZDOTDIR"]))
@@ -1047,12 +1047,12 @@ def prep_load(bulker_config, crate_registry_paths, manifest=None, build=False):
     shell_template_jinja = None
 
     exe_template = mkabs(bulker_config.bulker.executable_template,
-                         os.path.dirname(bulker_config._file_path))
+                         os.path.dirname(bulker_config["__internal"].file_path))
     build_template = mkabs(bulker_config.bulker.build_template, 
-                           os.path.dirname(bulker_config._file_path))
+                           os.path.dirname(bulker_config["__internal"].file_path))
     try:
         shell_template = mkabs(bulker_config.bulker.shell_template,
-                         os.path.dirname(bulker_config._file_path))        
+                         os.path.dirname(bulker_config["__internal"].file_path))        
     except AttributeError:
         _LOGGER.error("You need to re-initialize your bulker config or add a 'shell_template' attribute.")
         sys.exit(1)
@@ -1289,7 +1289,7 @@ def main():
                                   manifest_name,
                                   cratevars['tag'])
         if not os.path.isabs(crate_path):
-            crate_path = os.path.join(os.path.dirname(bcfg._file_path), crate_path)
+            crate_path = os.path.join(os.path.dirname(bcfg["__internal"].file_path), crate_path)
         print("Crate path: {}".format(crate_path))
 
         

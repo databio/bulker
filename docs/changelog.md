@@ -1,7 +1,10 @@
 # Changelog
 
+## [0.7.2] -- 2021-03-18
+- Update to yacman 0.8.0, fixing references to internal config attributes.
+
 ## [0.7.1] -- 2021-03-03
--- Fixed bug in bulker reload.
+- Fixed bug in bulker reload.
 
 ## [0.7.0] -- 2021-03-02
 - EXPERIMENTAL: Added `bulker cwl2man` to create a bulker manifest from a CWL file.
