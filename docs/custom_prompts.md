@@ -1,6 +1,6 @@
 # Customizing bulker prompts
 
-By default, when you activate a crate, bulker will change your prompt. You can customize it. Here are some examples that show you how to customize it.
+By default, when you activate a crate, bulker will change your prompt. You can customize it by specifying the `shell_prompt` attribute in your bulker config. *Make sure you enclose the value in single quotes*; if you use double-quotes the parser will re-escape your prompt escape sequences and break stuff. Here are some examples:
 
 In these examples we'll activate the crate like this:
 
@@ -18,7 +18,7 @@ The variables that could be displayed are these:
 
 # Default prompt
 
-The default bulker prompt shows you the name of the crate you've activated, colored in yellow. It's the equivalent of putting this in your config.
+The default bulker prompt shows you the name of the crate you've activated, colored in yellow. Bulker uses `\b` to indicate the name of the bulker namespace and crate. The default prompt is the equivalent of putting this in your config:
 
 ```yaml
   shell_prompt: '\[\033[01;93m\]\b|\[\033[00m\]\[\033[01;34m\]\w\[\033[00m\]\$ '
@@ -29,6 +29,8 @@ The default bulker prompt shows you the name of the crate you've activated, colo
 
 ## Include username and hostname
 
+In addition the bulker-provided `\b`, there are lots of other shell-provided variables you can use, like `\u` for username and `\h` for hostname, and `\W` for working directory path. You can look up lists of these by searching for *customizing bash PS1 prompt*. Here's a simple sample using *username* and *hostname*:
+
 ```yaml
   shell_prompt: '[\u@\h(\b) \W] $ '
 ```
@@ -37,7 +39,7 @@ The default bulker prompt shows you the name of the crate you've activated, colo
 
 ## Change colors
 
-You can use any terminal colors compatible with your terminal. 
+You can al;so use any terminal colors compatible with your terminal. 
 
 
 ```yaml
@@ -60,7 +62,7 @@ Yes, you can even put emoji in your prompt, if that's your thing:
 
 ## Date/time
 
-Also switched to using 256-color codes here:
+This example uses a custom date/time format along with 256-color codes:
 
 ```yaml
   shell_prompt: '\D{%y/%m/%d %H:%M}⚓ \e[38;5;141m\b\[\e[00m\]:\e[38;5;29m\W\e[39m $ '
