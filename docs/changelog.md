@@ -1,7 +1,8 @@
 # Changelog
 
-## [0.7.2] -- 2021-03-18
+## [0.7.2] -- 2021-03-25
 - Update to yacman 0.8.0, fixing references to internal config attributes.
+- Add documentation and clarity for the `shell_prompt` option
 
 ## [0.7.1] -- 2021-03-03
 - Fixed bug in bulker reload.
