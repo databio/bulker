@@ -844,6 +844,7 @@ def bulker_run(bulker_config, cratelist, command, strict=False):
     global PROC
     PROC = psutil.Popen(merged_command, shell=True, preexec_fn=os.setsid)
     PROC.communicate()
+    sys.exit(PROC.returncode)
     #command[0:0] = ["export", "PATH=\"{}\"".format(newpath)]
     #subprocess.call(merged_command)
 
