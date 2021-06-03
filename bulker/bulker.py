@@ -1360,13 +1360,18 @@ def main():
         manifest, cratevars, exe_template_jinja, shell_template_jinja, build_template_jinja = prep_load(
             bulker_config, args.crate_registry_paths, args.manifest, args.build)
 
-        bulker_load(manifest, cratevars, bulker_config, 
+        try:
+            bulker_load(manifest, cratevars, bulker_config, 
                     exe_jinja2_template=exe_template_jinja, 
                     shell_jinja2_template=shell_template_jinja, 
                     crate_path=args.path,
                     build=build_template_jinja,
                     force=args.force,
                     recurse=args.recurse)
+        except Exception as e:
+            print(f'Bulker load failed: {e}')
+            sys.exit(1)
+
 
     if args.command == "reload":
         bulker_config.make_writable()
