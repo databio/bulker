@@ -1290,7 +1290,7 @@ def main():
                                   manifest_name,
                                   cratevars['tag'])
         if not os.path.isabs(crate_path):
-            crate_path = os.path.join(os.path.dirname(bcfg["__internal"].file_path), crate_path)
+            crate_path = os.path.join(os.path.dirname(bulker_config["__internal"].file_path), crate_path)
         print("Crate path: {}".format(crate_path))
 
         
