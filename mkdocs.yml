@@ -22,6 +22,7 @@ nav:
     - Start an exploratory shell: shell.md
     - Use bulker in a multi-user environment: multi_user_environment.md
     - Host- and tool-specific settings: settings.md
+    - Custom prompts: custom_prompts.md
     - Use a bulker registry: registry.md
     - Use images with entrypoints: entrypoint.md
     - Disable user or network map: advanced_templates.md
