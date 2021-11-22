@@ -1262,7 +1262,7 @@ def main():
 
     bulkercfg = select_bulker_config(args.config)
     bulker_config = yacman.YacAttMap(filepath=bulkercfg, writable=False)
-    _LOGGER.info("Bulker config: {}".format(bulkercfg))
+    # _LOGGER.info("Bulker config: {}".format(bulkercfg))
 
     if args.command == "envvars":
         if args.add:
@@ -1308,18 +1308,28 @@ def main():
 
         if args.simple:
             fmt = "{namespace}/{crate}:{tag}"
+            crateslist = []
+            if bulker_config.bulker.crates:
+                for namespace, crates in bulker_config.bulker.crates.items():
+                    for crate, tags in crates.items():
+                        for tag, path in tags.items():
+                            crateslist.append(fmt.format(namespace=namespace, crate=crate, 
+                                            tag=tag, path=path))
+
+            print(" ".join(crateslist))
+
         else:
             _LOGGER.info("Available crates:")
             fmt = "{namespace}/{crate}:{tag} -- {path}"
 
-        if bulker_config.bulker.crates:
-            for namespace, crates in bulker_config.bulker.crates.items():
-                for crate, tags in crates.items():
-                    for tag, path in tags.items():
-                        print(fmt.format(namespace=namespace, crate=crate, 
-                                         tag=tag, path=path))
-        else:
-            _LOGGER.info("No crates available. Use 'bulker load' to load a crate.")
+            if bulker_config.bulker.crates:
+                for namespace, crates in bulker_config.bulker.crates.items():
+                    for crate, tags in crates.items():
+                        for tag, path in tags.items():
+                            print(fmt.format(namespace=namespace, crate=crate, 
+                                            tag=tag, path=path))
+            else:
+                _LOGGER.info("No crates available. Use 'bulker load' to load a crate.")
         sys.exit(1)
 
     # For all remaining commands we need a crate identifier
