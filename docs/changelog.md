@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.7.3] -- Unreleased
+- Fixed a bug that prevented use when installed in non-writable directory
+
 ## [0.7.2] -- 2021-06-24
 - Update to yacman 0.8.0, fixing references to internal config attributes.
 - Add documentation and clarity for the `shell_prompt` option
