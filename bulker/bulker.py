@@ -339,7 +339,7 @@ def bulker_init(config_path, template_config_path, container_engine=None):
         # templates_subdir =  TEMPLATE_SUBDIR
         copy_tree(os.path.dirname(template_config_path), dest_templates_dir)
         new_template = os.path.join(dest_folder, os.path.basename(template_config_path))
-        bulker_config = yacman.YacAttMap(filepath=template_config_path, writable=True)
+        bulker_config = yacman.YacAttMap(filepath=template_config_path, writable=False, skip_read_lock=True)
         _LOGGER.debug("Engine used: {}".format(container_engine))
         bulker_config.bulker.container_engine = container_engine
         if bulker_config.bulker.container_engine == "docker":
