@@ -1,0 +1,6 @@
+#!/bin/sh
+
+if [ ! -f "{{ pkg.singularity_fullpath }}" ]; then
+  singularity pull {{ pkg.singularity_image }} docker://{{ pkg.docker_image }}
+  mv {{ pkg.singularity_image }} {{ pkg.singularity_fullpath }}
+fi

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ ! -f "{{ pkg.singularity_fullpath }}" ]; then
+  singularity pull {{ pkg.singularity_image }} docker://{{ pkg.docker_image }}
+  mv {{ pkg.singularity_image }} {{ pkg.singularity_fullpath }}
+fi
+
+LC_ALL=C singularity exec \{% if pkg.singularity_args %}
+  {{ pkg.singularity_args }} \{% endif %}{% for volume in pkg.volumes %}{% if volume != "$HOME"  and volume != "${HOME}" %}
+  -B "{{volume}}:{{volume}}" \{% endif %}{% endfor %}
+  {{ pkg.singularity_fullpath }}{% if pkg.singularity_command %} {{ pkg.singularity_command }}{% elif pkg.docker_command %} {{ pkg.docker_command }}{% elif pkg.command %} {{ pkg.command }}{% endif %} "$@"

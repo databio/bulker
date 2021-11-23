@@ -1,28 +1,28 @@
-_bulker_complete() {
-  local cur prev
-
-  COMPREPLY=()
-  cur=${COMP_WORDS[COMP_CWORD]}
-  prev=${COMP_WORDS[COMP_CWORD-1]}
-
-  if [ $COMP_CWORD -eq 1 ]; then
-    cmds=`bulker --commands`
-    COMPREPLY=( $(compgen -W "${cmds}" -- ${cur}) )
-  elif [ $COMP_CWORD -eq 2 ]; then
-    case "$prev" in
-      "run")
-        cmds=`bulker list --simple`
-        COMPREPLY=( $(compgen -W "${cmds}" -- ${cur}) )
-        ;;
-      "activate")
-        cmds=`bulker list --simple`
-        COMPREPLY=( $(compgen -W "${cmds}"  -- ${cur}) )
-        ;;
-      *)
-        COMPREPLY=()
-        ;;
+# Begin bulker bash autocomplete
+_bulker_autocomplete()
+{
+    local cur prev opts1 opts2
+    cur=${COMP_WORDS[COMP_CWORD]}
+    prev=${COMP_WORDS[COMP_CWORD-1]}
+    opts1=$(bulker --commands)
+    opts2=$(bulker list --simple)
+    case ${COMP_CWORD} in
+        1)
+            COMPREPLY=($(compgen -W "${opts1}" -- ${cur}))
+            ;;
+        2)
+            case ${prev} in
+                "activate"|"run")
+                    COMPREPLY=($(compgen -W "${opts2}" -- ${cur}))
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            ;;
+        *)
+            COMPREPLY=()
+            ;;
     esac
-  fi
-  
-  return 0
-} && complete -F _bulker_complete bulker
+} && complete -o bashdefault -o default -F _bulker_autocomplete bulker
+# end bulker bash autocomplete

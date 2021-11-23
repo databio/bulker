@@ -26,6 +26,7 @@ nav:
     - Use a bulker registry: registry.md
     - Use images with entrypoints: entrypoint.md
     - Disable user or network map: advanced_templates.md
+    - Enable bash autocompletion: autocomplete.md
   - Reference:
     - Tips: tips.md
     - Support: https://github.com/databio/bulker/issues
