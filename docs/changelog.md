@@ -1,9 +1,13 @@
 # Changelog
 
+## [0.7.3] -- 2021-12-08
+- Fixed a bug that prevented use when installed in non-writable directory
+- Added ability to use bash autocompletion
+
 ## [0.7.2] -- 2021-06-24
 - Update to yacman 0.8.0, fixing references to internal config attributes.
 - Add documentation and clarity for the `shell_prompt` option
-- Fixed bug with relative crate root folders.
+- Fixed bug with relative crate root folders
 
 ## [0.7.1] -- 2021-03-03
 - Fixed bug in bulker reload.

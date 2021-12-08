@@ -99,9 +99,9 @@ def test_nonconfig_load():
                                                      "demo",
                                                      None)
     manifest, cratevars = load_remote_registry_path(bulker_config, "demo", None)
-    exe_template = mkabs(bulker_config.bulker.executable_template, os.path.dirname(bulker_config._file_path))
+    exe_template = mkabs(bulker_config.bulker.executable_template, os.path.dirname(bulker_config.__internal.file_path))
     shell_template = mkabs(bulker_config.bulker.shell_template,
-                         os.path.dirname(bulker_config._file_path))        
+                         os.path.dirname(bulker_config.__internal.file_path))        
     import jinja2
     with open(exe_template, 'r') as f:
         contents = f.read()

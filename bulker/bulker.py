@@ -339,7 +339,7 @@ def bulker_init(config_path, template_config_path, container_engine=None):
         # templates_subdir =  TEMPLATE_SUBDIR
         copy_tree(os.path.dirname(template_config_path), dest_templates_dir)
         new_template = os.path.join(dest_folder, os.path.basename(template_config_path))
-        bulker_config = yacman.YacAttMap(filepath=template_config_path, writable=True)
+        bulker_config = yacman.YacAttMap(filepath=template_config_path, writable=False, skip_read_lock=True)
         _LOGGER.debug("Engine used: {}".format(container_engine))
         bulker_config.bulker.container_engine = container_engine
         if bulker_config.bulker.container_engine == "docker":
@@ -1262,7 +1262,7 @@ def main():
 
     bulkercfg = select_bulker_config(args.config)
     bulker_config = yacman.YacAttMap(filepath=bulkercfg, writable=False)
-    _LOGGER.info("Bulker config: {}".format(bulkercfg))
+    # _LOGGER.info("Bulker config: {}".format(bulkercfg))
 
     if args.command == "envvars":
         if args.add:
@@ -1308,18 +1308,28 @@ def main():
 
         if args.simple:
             fmt = "{namespace}/{crate}:{tag}"
+            crateslist = []
+            if bulker_config.bulker.crates:
+                for namespace, crates in bulker_config.bulker.crates.items():
+                    for crate, tags in crates.items():
+                        for tag, path in tags.items():
+                            crateslist.append(fmt.format(namespace=namespace, crate=crate, 
+                                            tag=tag, path=path))
+
+            print(" ".join(crateslist))
+
         else:
             _LOGGER.info("Available crates:")
             fmt = "{namespace}/{crate}:{tag} -- {path}"
 
-        if bulker_config.bulker.crates:
-            for namespace, crates in bulker_config.bulker.crates.items():
-                for crate, tags in crates.items():
-                    for tag, path in tags.items():
-                        print(fmt.format(namespace=namespace, crate=crate, 
-                                         tag=tag, path=path))
-        else:
-            _LOGGER.info("No crates available. Use 'bulker load' to load a crate.")
+            if bulker_config.bulker.crates:
+                for namespace, crates in bulker_config.bulker.crates.items():
+                    for crate, tags in crates.items():
+                        for tag, path in tags.items():
+                            print(fmt.format(namespace=namespace, crate=crate, 
+                                            tag=tag, path=path))
+            else:
+                _LOGGER.info("No crates available. Use 'bulker load' to load a crate.")
         sys.exit(1)
 
     # For all remaining commands we need a crate identifier
