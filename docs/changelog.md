@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.7.3] -- Unreleased
+## [0.7.3] -- 2021-12-08
 - Fixed a bug that prevented use when installed in non-writable directory
 - Added ability to use bash autocompletion
 
