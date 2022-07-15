@@ -16,7 +16,7 @@ bulker:
         default:
           docker_args: -v /project/shefflab/database/redis:/data
     bioconductor:
-      bioconductor_full:
+      bioconductor_docker:
         default:
           docker_args: --volume=${HOME}/.local/lib/R:/usr/local/lib/R/host-site-library
         devel:
