@@ -1,16 +1,18 @@
 bulker:
-  volumes: ['$HOME']
-  envvars: ['DISPLAY']
+  build_template: templates/docker_build.jinja2
+  container_engine: docker
+  crates: null
+  default_crate_folder: ${HOME}/bulker_crates
+  default_namespace: bulker
+  envvars:
+  - DISPLAY
+  executable_template: templates/docker_executable.jinja2
+  rcfile: templates/start.sh
+  rcfile_strict: templates/start_strict.sh
   registry_url: http://hub.bulker.io/
   shell_path: ${SHELL}
   shell_rc: $HOME/.bashrc
-  rcfile: start.sh
-  rcfile_strict: start_strict.sh  
-  default_crate_folder: ${HOME}/bulker_crates
+  shell_template: templates/docker_shell.jinja2
   singularity_image_folder: ${HOME}/simages
-  container_engine: docker
-  default_namespace: bulker
-  executable_template: docker_executable.jinja2
-  shell_template: docker_shell.jinja2
-  build_template: docker_build.jinja2
-  crates: null
+  volumes:
+  - $HOME
