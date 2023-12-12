@@ -16,9 +16,9 @@ DUMMY_CFG_CRATE_SUBDIR = "crates"
 
 def test_yacman():
 
-    bc = yacman.YacAttMap(filepath=DEFAULT_CONFIG_FILEPATH)
+    bc = yacman.YAMLConfigManager(filepath=DEFAULT_CONFIG_FILEPATH)
     bc
-    bc.bulker.default_crate_folder
+    bc["bulker"]["default_crate_folder"]
 
 yaml_str = """\
 ---
@@ -28,7 +28,7 @@ one: 1
 
 def test_float_idx():
 
-    data = yacman.YacAttMap(yamldata=yaml_str)
+    data = yacman.YAMLConfigManager(yamldata=yaml_str)
     # We should be able to access this by string, not by int index.
     assert(data['2'] == "two")
     with pytest.raises(KeyError):
@@ -51,7 +51,7 @@ def test_bulker_init():
         pass
 
     bulker_init(DUMMY_CFG_FILEPATH, DEFAULT_CONFIG_FILEPATH, "docker")
-    bulker_config = yacman.YacAttMap(filepath=DEFAULT_CONFIG_FILEPATH)
+    bulker_config = yacman.YAMLConfigManager(filepath=DEFAULT_CONFIG_FILEPATH)
 
     manifest, cratevars = load_remote_registry_path(bulker_config, 
                                                      "demo",
@@ -66,7 +66,7 @@ def test_bulker_init():
 
 def test_bulker_activate():
 
-    bulker_config = yacman.YacAttMap(filepath=DEFAULT_CONFIG_FILEPATH)
+    bulker_config = yacman.YAMLConfigManager(filepath=DEFAULT_CONFIG_FILEPATH)
 
 
 def test_nonconfig_load():
@@ -85,23 +85,22 @@ def test_nonconfig_load():
         pass
 
     bulker_init(DUMMY_CFG_FILEPATH, DEFAULT_CONFIG_FILEPATH, "docker")
-    bulker_config = yacman.YacAttMap(filepath=DUMMY_CFG_FILEPATH)
+    bulker_config = yacman.YAMLConfigManager(filepath=DUMMY_CFG_FILEPATH)
 
     # The 'load' command will write the new crate to the config file;
     # we don't want it to update the template config file, so make a dummy
     # filepath that we'll delete later.
-    bulker_config.make_writable()
     # for testing, use a local crate folder
-    bulker_config.bulker.default_crate_folder = DUMMY_CFG_CRATE_SUBDIR
+    bulker_config["bulker"]["default_crate_folder"] = DUMMY_CFG_CRATE_SUBDIR
 
     print("Bulker config: {}".format(bulker_config))
     manifest, cratevars = load_remote_registry_path(bulker_config, 
                                                      "demo",
                                                      None)
     manifest, cratevars = load_remote_registry_path(bulker_config, "demo", None)
-    exe_template = mkabs(bulker_config.bulker.executable_template, os.path.dirname(bulker_config.__internal.file_path))
-    shell_template = mkabs(bulker_config.bulker.shell_template,
-                         os.path.dirname(bulker_config.__internal.file_path))        
+    exe_template = mkabs(bulker_config["bulker"]["executable_template"], os.path.dirname(bulker_config.filepath))
+    shell_template = mkabs(bulker_config["bulker"]["shell_template"],
+                         os.path.dirname(bulker_config.filepath))        
     import jinja2
     with open(exe_template, 'r') as f:
         contents = f.read()
@@ -110,8 +109,6 @@ def test_nonconfig_load():
     with open(shell_template, 'r') as f:
         contents = f.read()
         shell_template_jinja = jinja2.Template(contents)
-
-
 
     bulker_load(manifest, cratevars, bulker_config, exe_template_jinja,
     shell_template_jinja, force=True)
@@ -124,7 +121,7 @@ def test_nonconfig_load():
     print(cratelist)
 
     # Test a reload with already-removed crate
-    crate_folder = os.path.join(bulker_config.bulker.default_crate_folder, "bulker/demo/default")
+    crate_folder = os.path.join(bulker_config["bulker"]["default_crate_folder"], "bulker/demo/default")
     print("removing {}".format(crate_folder))
     # shutil.rmtree(crate_folder)
     bulker_load(manifest, cratevars, bulker_config, exe_template_jinja,
@@ -163,5 +160,5 @@ def test_nonconfig_load():
 # out, err, exitcode = capture([os.path.expandvars("$HOME/.local/bin/bulker"), "load", "bogusbogus"])
 # assert exitcode == 1
 
-# manifest = yacman.YacAttMap(filepath="/home/ns5bc/code/bulker/demo/demo_manifest.yaml")
+# manifest = yacman.YAMLConfigManager(filepath="/home/ns5bc/code/bulker/demo/demo_manifest.yaml")
 # bc
