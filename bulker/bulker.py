@@ -13,8 +13,8 @@ import yacman
 import signal
 import shutil
 
-from distutils.dir_util import copy_tree
-from distutils.spawn import find_executable
+from shutil import which, copytree
+
 
 from ubiquerg import is_url, is_command_callable, parse_registry_path as prp, \
                     query_yes_no
@@ -338,7 +338,7 @@ def bulker_init(config_path, template_config_path, container_engine=None):
         dest_folder = os.path.dirname(config_path)
         dest_templates_dir = os.path.join(dest_folder, TEMPLATE_SUBDIR)
         # templates_subdir =  TEMPLATE_SUBDIR
-        copy_tree(os.path.dirname(template_config_path), dest_templates_dir)
+        copytree(os.path.dirname(template_config_path), dest_templates_dir, dirs_exist_ok=True)
         new_template = os.path.join(dest_folder, os.path.basename(template_config_path))
         bulker_config = yacman.YAMLConfigManager(filepath=template_config_path, locked=False, skip_read_lock=True)
         _LOGGER.debug("Engine used: {}".format(container_engine))
@@ -498,7 +498,7 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
             bulker_load(imp_manifest, imp_cratevars, bcfg, exe_jinja2_template,
             shell_jinja2_template, crate_path=None, build=build, force=force, recurse=False)
         _LOGGER.info("Importing crate '{}' from '{}'.".format(imp, imp_crate_path))
-        copy_tree(imp_crate_path, crate_path)
+        copytree(imp_crate_path, crate_path, dirs_exist_ok=True)
 
     # should put this in a function
     def host_tool_specific_args(bcfg, pkg, hosttool_arg_key):
@@ -607,7 +607,7 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
                 _LOGGER.warning("Requested host command is not callable and "
                 "therefore not created: '{}'".format(cmd))
                 continue
-            local_exe = find_executable(cmd)
+            local_exe = which(cmd)
             path = os.path.join(crate_path, cmd)
             host_cmdlist.append(cmd)
             try:
