@@ -97,15 +97,45 @@ def build_argparser():
 
     subparser_messages = {
         "init": "Initialize a new bulker config file",
-        "inspect": "View name and list of commands for a crate",
-        "list": "List available bulker crates",
+        "inspect": "View commands in a loaded crate",
+        "list": "List loaded bulker crates",
         "load": "Load a crate from a manifest",
-        "unload": "Remove a loaded crate from bulker config",
-        "reload": "Reload all previously loaded manifests",
-        "activate": "Activate a crate by adding it to PATH",
-        "run": "Run a command in a crate",
-        "envvars": "List, add, or remove environment variables to bulker config",
+        "unload": "Remove a loaded crate from disk and config",
+        "reload": "Re-fetch and rebuild all loaded crates from their manifests",
+        "activate": "Start a new shell with crate commands in PATH",
+        "run": "Run a single command in a crate environment without starting a shell",
+        "envvars": "List, add, or remove environment variables in bulker config",
         "cwl2man": "Build a manifest from cwl tool descriptions"
+    }
+
+    subparser_examples = {
+        "init": "  bulker init -c ~/.bulker/bulker_config.yaml\n"
+                "  bulker init -c ~/bulker_config.yaml -e singularity",
+        "inspect": "  bulker inspect                         # inspect the currently active crate\n"
+                   "  bulker inspect bulker/demo\n"
+                   "  bulker inspect databio/pepatac:1.0.13",
+        "list": "  bulker list\n"
+                "  bulker list -s                         # simple format for scripting",
+        "load": "  bulker load bulker/demo\n"
+                "  bulker load databio/pepatac:1.0.13\n"
+                "  bulker load -f bulker/demo             # overwrite existing\n"
+                "  bulker load -b bulker/demo             # also pull container images\n"
+                "  bulker load -m manifest.yaml my/crate  # load from local manifest file",
+        "unload": "  bulker unload bulker/demo\n"
+                  "  bulker unload databio/pepatac:1.0.13",
+        "reload": "  bulker reload                          # reload all crates",
+        "activate": "  bulker activate bulker/demo\n"
+                    "  bulker activate databio/pepatac:1.0.13\n"
+                    "  bulker activate bulker/demo,bulker/pi    # multiple crates\n"
+                    "  bulker activate demo                     # uses default namespace\n"
+                    "  bulker activate -s bulker/demo           # strict: only crate commands in PATH\n"
+                    "  bulker activate -e bulker/demo           # print exports instead of launching shell",
+        "run": "  bulker run bulker/demo cowsay hello\n"
+               "  bulker run databio/pepatac:1.0.13 samtools --version\n"
+               "  bulker run -s bulker/demo cowsay hi  # strict: only crate commands in PATH",
+        "envvars": "  bulker envvars                         # list current variables\n"
+                   "  bulker envvars -a MY_VAR              # add a variable\n"
+                   "  bulker envvars -r MY_VAR              # remove a variable",
     }
 
     parser = _VersionInHelpParser(
@@ -125,9 +155,12 @@ def build_argparser():
     subparsers = parser.add_subparsers(dest="command") 
 
     def add_subparser(cmd, description):
+        examples = subparser_examples.get(cmd)
+        epilog = "examples:\n" + examples if examples else None
         return subparsers.add_parser(
-            cmd, description=description, help=description)
-
+            cmd, description=description, help=description,
+            epilog=epilog,
+            formatter_class=argparse.RawDescriptionHelpFormatter)
 
     # Add subparsers
     sps = {}
@@ -147,16 +180,14 @@ def build_argparser():
     for cmd in ["run", "activate", "load", "unload"]:
         sps[cmd].add_argument(
             "crate_registry_paths", metavar="crate-registry-paths", type=str,
-            help="One or more comma-separated registry path strings"
-            "  that identify crates (e.g. bulker/demo:1.F0.0)")
+            help="Crate to use, e.g. bulker/demo or namespace/crate:tag")
 
     # optional for inspect and cwl2man
     for cmd in ["inspect"]:
         sps[cmd].add_argument(
             "crate_registry_paths", metavar="crate-registry-paths", type=str,
             nargs="?", default=os.getenv("BULKERCRATE", ""),
-            help="One or more comma-separated registry path strings"
-            "  that identify crates (e.g. bulker/demo:1.0.0)")
+            help="Crate to inspect (defaults to active crate from BULKERCRATE)")
 
     for cmd in ["run", "activate"]:
         sps[cmd].add_argument(
@@ -1282,7 +1313,7 @@ def main():
 
     if args.command == "inspect":
         if args.crate_registry_paths == "":
-            _LOGGER.error("No active create. Inspect requires a provided crate, or a currently active create.")
+            _LOGGER.error("No crate specified and no active crate (BULKERCRATE not set). Run 'bulker activate <crate>' first, or specify: bulker inspect <crate>")
             sys.exit(1)
         manifest, cratevars = load_remote_registry_path(bulker_config, 
                                                     args.crate_registry_paths,
@@ -1346,10 +1377,10 @@ def main():
             bulker_activate(bulker_config, cratelist, echo=args.echo, strict=args.strict, prompt=args.no_prompt)
         except KeyError as e:
             parser.print_help(sys.stderr)
-            _LOGGER.error("{} is not an available crate".format(e))
+            _LOGGER.error("{} is not an available crate. Run 'bulker list' to see loaded crates.".format(e))
             sys.exit(1)
         except MissingCrateError as e:
-            _LOGGER.error("Missing crate: {}".format(e))
+            _LOGGER.error("Missing crate: {}. Run 'bulker list' to see loaded crates, or 'bulker load' to add one.".format(e))
             sys.exit(1)
         except AttributeError as e:
             _LOGGER.error("Your bulker config file is outdated, you need to re-initialize it: {}".format(e))
@@ -1362,10 +1393,10 @@ def main():
             bulker_run(bulker_config, cratelist, args.cmd, strict=args.strict)
         except KeyError as e:
             parser.print_help(sys.stderr)
-            _LOGGER.error("{} is not an available crate".format(e))
+            _LOGGER.error("{} is not an available crate. Run 'bulker list' to see loaded crates.".format(e))
             sys.exit(1)
         except MissingCrateError as e:
-            _LOGGER.error("Missing crate: {}".format(e))
+            _LOGGER.error("Missing crate: {}. Run 'bulker list' to see loaded crates, or 'bulker load' to add one.".format(e))
             sys.exit(1)        
 
     if args.command == "load":
