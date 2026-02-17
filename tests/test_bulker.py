@@ -16,7 +16,7 @@ DUMMY_CFG_CRATE_SUBDIR = "crates"
 
 def test_yacman():
 
-    bc = yacman.YAMLConfigManager(filepath=DEFAULT_CONFIG_FILEPATH)
+    bc = yacman.YAMLConfigManager.from_yaml_file(DEFAULT_CONFIG_FILEPATH)
     bc
     bc["bulker"]["default_crate_folder"]
 
@@ -28,7 +28,7 @@ one: 1
 
 def test_float_idx():
 
-    data = yacman.YAMLConfigManager(yamldata=yaml_str)
+    data = yacman.YAMLConfigManager.from_yaml_data(yaml_str)
     # We should be able to access this by string, not by int index.
     assert(data['2'] == "two")
     with pytest.raises(KeyError):
@@ -51,7 +51,7 @@ def test_bulker_init():
         pass
 
     bulker_init(DUMMY_CFG_FILEPATH, DEFAULT_CONFIG_FILEPATH, "docker")
-    bulker_config = yacman.YAMLConfigManager(filepath=DEFAULT_CONFIG_FILEPATH)
+    bulker_config = yacman.YAMLConfigManager.from_yaml_file(DEFAULT_CONFIG_FILEPATH)
 
     manifest, cratevars = load_remote_registry_path(bulker_config, 
                                                      "demo",
@@ -66,7 +66,7 @@ def test_bulker_init():
 
 def test_bulker_activate():
 
-    bulker_config = yacman.YAMLConfigManager(filepath=DEFAULT_CONFIG_FILEPATH)
+    bulker_config = yacman.YAMLConfigManager.from_yaml_file(DEFAULT_CONFIG_FILEPATH)
 
 
 def test_nonconfig_load():
@@ -85,7 +85,7 @@ def test_nonconfig_load():
         pass
 
     bulker_init(DUMMY_CFG_FILEPATH, DEFAULT_CONFIG_FILEPATH, "docker")
-    bulker_config = yacman.YAMLConfigManager(filepath=DUMMY_CFG_FILEPATH)
+    bulker_config = yacman.YAMLConfigManager.from_yaml_file(DUMMY_CFG_FILEPATH)
 
     # The 'load' command will write the new crate to the config file;
     # we don't want it to update the template config file, so make a dummy

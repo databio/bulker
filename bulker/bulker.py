@@ -10,6 +10,7 @@ import os
 import psutil
 import sys
 import yacman
+from yacman import write_lock
 import signal
 import shutil
 
@@ -308,7 +309,7 @@ def bulker_envvars_add(bulker_config, variable):
         _LOGGER.error("You must specify a variable.")
         return
 
-    with bulker_config as bcfg:
+    with write_lock(bulker_config) as bcfg:
         if variable in bcfg["bulker"]["envvars"]:
             _LOGGER.info("Variable '{}' already present".format(variable))
         else:
@@ -328,8 +329,7 @@ def bulker_envvars_remove(bulker_config, variable):
         _LOGGER.error("You must specify a variable.")
         return
 
-    with bulker_config as bcfg:
-        bcfg.make_writable()
+    with write_lock(bulker_config) as bcfg:
         if variable in bcfg["bulker"]["envvars"]:
             _LOGGER.info("Removing variable '{}'".format(variable))
             bcfg["bulker"]["envvars"].remove(variable)
@@ -371,7 +371,7 @@ def bulker_init(config_path, template_config_path, container_engine=None):
         # templates_subdir =  TEMPLATE_SUBDIR
         copytree(os.path.dirname(template_config_path), dest_templates_dir, dirs_exist_ok=True)
         new_template = os.path.join(dest_folder, os.path.basename(template_config_path))
-        bulker_config = yacman.YAMLConfigManager(filepath=template_config_path, locked=False, skip_read_lock=True)
+        bulker_config = yacman.YAMLConfigManager.from_yaml_file(template_config_path)
         _LOGGER.debug("Engine used: {}".format(container_engine))
         bulker_config["bulker"]["container_engine"] = container_engine
         if bulker_config["bulker"]["container_engine"] == "docker":
@@ -483,9 +483,9 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
     if not bcfg["bulker"]["crates"]:
         bcfg["bulker"]["crates"] = {}
     if not cratevars['namespace'] in bcfg["bulker"]["crates"]:
-        bcfg["bulker"]["crates"][cratevars['namespace']] = yacman.YAMLConfigManager({})
+        bcfg["bulker"]["crates"][cratevars['namespace']] = {}
     if not cratevars['crate'] in bcfg["bulker"]["crates"][cratevars['namespace']]:
-        bcfg["bulker"]["crates"][cratevars['namespace']][cratevars['crate']] = yacman.YAMLConfigManager({})
+        bcfg["bulker"]["crates"][cratevars['namespace']][cratevars['crate']] = {}
     if cratevars['tag'] in bcfg["bulker"]["crates"][cratevars['namespace']][cratevars['crate']]:
         _LOGGER.debug(bcfg["bulker"]["crates"][cratevars['namespace']][cratevars['crate']])
         if not (force or query_yes_no("That manifest has already been loaded. Overwrite?")):
@@ -555,7 +555,7 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
         for pkg in manifest["manifest"]["commands"]:
             _LOGGER.debug(pkg)
             pkg.update(bcfg["bulker"]) # Add terms from the bulker config
-            pkg = copy.deepcopy(yacman.YAMLConfigManager(pkg))  # (otherwise it's just a dict)
+            pkg = copy.deepcopy(pkg)
             # We have to deepcopy it so that changes we make to pkg aren't reflected in bcfg.
 
             if pkg["container_engine"] == "singularity" and "singularity_image_folder" in pkg:
@@ -678,8 +678,8 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
         _LOGGER.info("Host commands available: {}".format(", ".join(host_cmdlist)))
 
 
-    with bcfg as bcfg:
-        bcfg.write()
+    with write_lock(bcfg) as locked_bcfg:
+        locked_bcfg.write()
 
 def bulker_activate(bulker_config, cratelist, echo=False, strict=False, prompt=True):
     """
@@ -1037,9 +1037,9 @@ def load_remote_registry_path(bulker_config, registry_path, filepath=None):
                 raise Exception("No remote manifest found")
         data = response.read()      # a `bytes` object
         text = data.decode('utf-8')
-        manifest_lines = yacman.YAMLConfigManager(yamldata=text)
+        manifest_lines = yacman.YAMLConfigManager.from_yaml_data(text)
     else:
-        manifest_lines = yacman.YAMLConfigManager(filepath=filepath)
+        manifest_lines = yacman.YAMLConfigManager.from_yaml_file(filepath)
 
     return manifest_lines, cratevars
 
@@ -1134,13 +1134,13 @@ def parse_cwl(cwl_file):
     """
     :param str cwl_file: CWL tool description file.
     """
-    yam = yacman.YAMLConfigManager(filepath=cwl_file)
+    yam = yacman.YAMLConfigManager.from_yaml_file(cwl_file)
     if yam["class"] != "CommandLineTool":
         _LOGGER.info("CWL file of wrong class: {} ({})".format(cwl_file, yam["class"]))
         return None
     try:
-        maybe_base_command = yam.baseCommand
-    except AttributeError:
+        maybe_base_command = yam["baseCommand"]
+    except KeyError:
         _LOGGER.info("Can't find base command from {}".format(cwl_file))
         raise BaseCommandNotFoundException(cwl_file)
 
@@ -1184,7 +1184,7 @@ def parse_cwl(cwl_file):
 
     if str(image).startswith("$include"):
         print(str(image))
-        x = yacman.YAMLConfigManager(yamldata=str(image))
+        x = yacman.YAMLConfigManager.from_yaml_data(str(image))
         file_path = str(x["$include"])
         with open(os.path.join(os.path.dirname(cwl_file), file_path), 'r') as f:
             contents = f.read()
@@ -1218,20 +1218,17 @@ def bulker_unload(bulker_config, crate_registry_paths):
                         crate=crate, 
                         tag=tag)
                     _LOGGER.info("Removing crate: '{}'".format(regpath))
-                    bulker_config.make_writable()
-                    # bulker_config["bulker"].crates[namespace][crate][tag] = None
                     crate_path = bulker_config["bulker"]["crates"][namespace][crate][tag]
-                    del bulker_config["bulker"]["crates"][namespace][crate][tag]
+                    with write_lock(bulker_config) as locked_cfg:
+                        del locked_cfg["bulker"]["crates"][namespace][crate][tag]
+                        if len(locked_cfg["bulker"]["crates"][namespace][crate]) == 0:
+                            _LOGGER.info("Last tag!")
+                            del locked_cfg["bulker"]["crates"][namespace][crate]
+                        locked_cfg.write()
                     try:
                         shutil.rmtree(crate_path)
                     except:
                         _LOGGER.error("Error removing crate at {}. Did your crate path change? Remove it manually.".format(crate_path))
-
-                    if len(bulker_config["bulker"]["crates"][namespace][crate]) ==0:
-                        _LOGGER.info("Last tag!")
-                        del bulker_config["bulker"]["crates"][namespace][crate]
-                    with bulker_config as bcfg:
-                        bcfg.write()
                     removed_crates.append(regpath)
 
     if len(removed_crates) > 0:
@@ -1265,9 +1262,7 @@ def main():
         sys.exit(0)      
 
     if args.command == "cwl2man":
-        bm = yacman.YAMLConfigManager()
-        bm.manifest = yacman.YAMLConfigManager()
-        bm.manifest["commands"] = []
+        bm = {"manifest": {"commands": []}}
 
         baseCommandsNotFound = []
         imagesNotFound = []
@@ -1275,27 +1270,28 @@ def main():
             try:
                 cmd = parse_cwl(cwl_file)
                 if cmd:
-                    bm.manifest["commands"].append(cmd)
+                    bm["manifest"]["commands"].append(cmd)
             except BaseCommandNotFoundException as e:
                 baseCommandsNotFound.append(e.file)
             except ImageNotFoundException as e:
                 imagesNotFound.append(e.file)
 
-        _LOGGER.info("Commands added: {}".format(len(bm.manifest["commands"])))
+        _LOGGER.info("Commands added: {}".format(len(bm["manifest"]["commands"])))
         if len(baseCommandsNotFound) > 0:
             _LOGGER.info("Command not found ({}): {}".format(
                 len(baseCommandsNotFound), baseCommandsNotFound))
         if len(imagesNotFound) > 0:
             _LOGGER.info("Image not found ({}): {}".format(
                 len(imagesNotFound), imagesNotFound))
-            
-        bm.write_copy(args.manifest)
+
+        bm_cfg = yacman.YAMLConfigManager.from_obj(bm)
+        bm_cfg.write_copy(args.manifest)
         sys.exit(0)
 
     # Any remaining commands require config so we process it now.
 
     bulkercfg = select_bulker_config(args.config)
-    bulker_config = yacman.YAMLConfigManager(filepath=bulkercfg, locked=False)
+    bulker_config = yacman.YAMLConfigManager.from_yaml_file(bulkercfg)
     # _LOGGER.info("Bulker config: {}".format(bulkercfg))
 
     if args.command == "envvars":
@@ -1307,7 +1303,7 @@ def main():
             _LOGGER.debug("Removing env var")
             _is_writable(os.path.dirname(bulkercfg), check_exist=False)
             bulker_envvars_remove(bulker_config, args.remove)
-        _LOGGER.info("Envvars list: {}".format(bulker_config["bulker"].envvars))
+        _LOGGER.info("Envvars list: {}".format(bulker_config["bulker"]["envvars"]))
         sys.exit(0)           
 
 
@@ -1356,7 +1352,7 @@ def main():
             _LOGGER.info("Available crates:")
             fmt = "{namespace}/{crate}:{tag} -- {path}"
 
-            if bulker_config["bulker"].crates:
+            if bulker_config["bulker"]["crates"]:
                 for namespace, crates in bulker_config["bulker"]["crates"].items():
                     for crate, tags in crates.items():
                         for tag, path in tags.items():
@@ -1400,7 +1396,7 @@ def main():
             sys.exit(1)        
 
     if args.command == "load":
-        with bulker_config as _:
+        with write_lock(bulker_config) as _:
             manifest, cratevars, exe_template_jinja, shell_template_jinja, build_template_jinja = prep_load(
                 bulker_config, args.crate_registry_paths, args.manifest, args.build)
 
@@ -1419,7 +1415,7 @@ def main():
 
     if args.command == "reload":
         _LOGGER.info("Reloading all manifests")
-        with bulker_config as _:
+        with write_lock(bulker_config) as _:
             bulker_reload(bulker_config)
 
     if args.command == "unload":
