@@ -1,9 +1,11 @@
 # Changelog
 
-## [0.8.0] -- Unreleased
-- Some routine maintenance
-- Prepped for yacman v1, dropping attmap support
+## [0.8.0] -- 2026-02-25
+- Migrated to yacman v1 API (`YAMLConfigManager.from_yaml_file()`, `write_lock` context managers)
+- Dropped attmap dependency
+- Bumped ubiquerg requirement to >=0.9.0
 - Added support for Python 3.12
+- Fixed compatibility with distutils removal in Python 3.12
 
 ## [0.7.3] -- 2021-12-08
 - Fixed a bug that prevented use when installed in non-writable directory
