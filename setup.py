@@ -32,11 +32,10 @@ setup(
     description="Manager of portable multi-container computing environments",
     long_description=long_description,
     long_description_content_type='text/markdown',
+    python_requires=">=3.10",
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: BSD License",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
