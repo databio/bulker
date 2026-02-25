@@ -678,7 +678,8 @@ def bulker_load(manifest, cratevars, bcfg, exe_jinja2_template,
         _LOGGER.info("Host commands available: {}".format(", ".join(host_cmdlist)))
 
 
-    bcfg.write()
+    with write_lock(bcfg) as locked_cfg:
+        locked_cfg.write()
 
 def bulker_activate(bulker_config, cratelist, echo=False, strict=False, prompt=True):
     """

@@ -2,5 +2,5 @@ yacman>=0.9.5
 pyyaml>=5.1
 logmuse>=0.2.0
 jinja2
-ubiquerg>=0.5.1
+ubiquerg>=0.9.0
 psutil
