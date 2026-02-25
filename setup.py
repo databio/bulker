@@ -32,11 +32,13 @@ setup(
     description="Manager of portable multi-container computing environments",
     long_description=long_description,
     long_description_content_type='text/markdown',
+    python_requires=">=3.10",
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: BSD License",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Scientific/Engineering :: Bio-Informatics"
     ],
     keywords="docker, containers, reproducibility, bioinformatics, workflow",
